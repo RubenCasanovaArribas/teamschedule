@@ -1,0 +1,299 @@
+/* ==============================================
+   🧭 Global Base
+============================================== */
+html {
+  transition: font-size 0.3s ease;
+}
+
+:root {
+  --bg-color: #0a0a0a;
+  --card-bg: #222222;
+  --tertiary-bg: #222222;
+  --tertiary-bg-active: #16371b;
+  --text-color: #f0f0f0;
+  --secondary-text: #888;
+  --accent-yellow: #FEFE00;
+  --accent-green: #00FF66;
+  --divider-color: #777;
+  --border-radius: 10px;
+  --font-family: "Montserrat", "Segoe UI", Roboto, Arial, sans-serif;
+  --card-side-padding: 8px;
+}
+
+/* ==============================================
+   🧱 Document Layout
+============================================== */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  background-color: var(--bg-color);
+  font-family: var(--font-family);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ==============================================
+   🏁 Header
+============================================== */
+header {
+  width: 100%;
+  background-color: var(--bg-color);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+header .logo {
+  display: flex;
+  align-items: center;
+}
+
+header .logo-img {
+  width: 140px;
+  height: 40px;
+  object-fit: contain;
+}
+
+header .header-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-color);
+  font-size: 2.0em;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Current Date & Time */
+#current-datetime {
+  text-align: right;
+  line-height: 1.2;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+#current-datetime .date-line {
+  font-size: 0.9em;
+  color: var(--secondary-text);
+}
+
+#current-datetime .time-line {
+  font-size: 2.5em;
+  font-weight: 700;
+  color: var(--accent-yellow);
+}
+
+/* ==============================================
+   🧩 Main Container
+============================================== */
+main {
+  flex: 1 1 auto;
+  width: 95%;
+  max-width: 1800px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: visible;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+/* ==============================================
+   🧭 Category Dividers
+============================================== */
+#main-events::after,
+#secondary-events::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background-color: var(--divider-color);
+  width: calc(100% + 2%);
+  margin: 10px -1%;
+  border-radius: 2px;
+}
+
+#main-events,
+#secondary-events,
+#tertiary-events {
+  border: none;
+}
+
+/* ==============================================
+   🪶 Event Cards
+============================================== */
+.event-card {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px var(--card-side-padding);
+  box-sizing: border-box;
+}
+
+.event-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(255, 254, 0, 0.25);
+}
+
+/* ==============================================
+   📝 Card Content
+============================================== */
+.info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.info .title {
+  font-weight: 700;
+  color: var(--accent-yellow);
+}
+
+.info .description {
+  color: var(--secondary-text);
+  font-size: 0.8em;
+}
+
+.info .datetime {
+  font-size: 0.8em;
+  color: #808080;
+}
+
+/* ==============================================
+   ⏱️ Countdown
+============================================== */
+.countdown {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding-right: var(--card-side-padding);
+}
+
+.countdown .time {
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 1.6em; /* <--- controla el tamaño de la cuenta atrás */
+}
+
+.countdown .label {
+  font-size: 0.8em;
+  color: var(--secondary-text);
+  white-space: nowrap;
+}
+
+/* COUNTDOWN COLORS */
+.countdown.pending .time {
+  color: var(--accent-yellow);
+}
+
+.countdown.in-progress .time {
+  color: var(--accent-green);
+  animation: pulse 1.2s infinite alternate;
+}
+
+/* ==============================================
+   🟢 Pulse Animation
+============================================== */
+@keyframes pulse {
+  from { text-shadow: 0 0 4px var(--accent-green); }
+  to   { text-shadow: 0 0 14px var(--accent-green); }
+}
+
+/* ==============================================
+   📊 Progress Bar
+============================================== */
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--accent-green);
+  width: 0%;
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+}
+
+/* ==============================================
+   ⚙️ Card Variations
+============================================== */
+
+/* MAIN */
+.main .info .title {
+  color: var(--accent-yellow);
+  font-weight: 700;
+  font-size: 1.6em;
+}
+.main .countdown .time {
+  font-weight: 700;
+}
+
+/* SECONDARY */
+.secondary .info .title {
+  color: var(--text-color);
+  font-weight: 400; /* no bold */
+  font-size: 1.3em;
+}
+.secondary .countdown .time {
+  font-weight: 400;
+  color: var(--text-color);
+}
+.secondary .countdown.in-progress .time {
+  color: var(--accent-green); /* change when active */
+}
+
+/* TERTIARY */
+.tertiary {
+  background: var(--tertiary-bg);
+}
+.tertiary.active {
+  background: var(--tertiary-bg-active);
+}
+.tertiary .info .title {
+  color: var(--accent-yellow);
+  font-weight: 400; /* no bold */
+  font-size: 1.1em;
+}
+.tertiary .countdown .time {
+  font-weight: 400;
+}
+.tertiary .countdown.in-progress .time {
+  color: var(--accent-green);
+}
+
+/* ==============================================
+   📱 Responsive
+============================================== */
+@media (max-width: 600px) {
+  .event-card {
+    grid-template-columns: 1fr;
+  }
+
+  .countdown {
+    text-align: left;
+    margin-top: 8px;
+    padding-right: 0;
+  }
+}
