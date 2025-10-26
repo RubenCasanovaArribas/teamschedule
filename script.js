@@ -2,8 +2,8 @@
 // ⚙️ CONFIGURATION
 // ==============================================
 const SHOW_DESCRIPTION = false;
-const MAIN_EVENTS_TO_SHOW = 6;
-const SECONDARY_EVENTS_TO_SHOW = 8;
+const MAIN_EVENTS_TO_SHOW = 3;
+const SECONDARY_EVENTS_TO_SHOW = 3;
 const HEIGHT_RATIO = 0.9; // Use 90% of available height
 const GAP_CARD_RATIO = 0.2; // Gap between cards in same category
 const GAP_CATEGORY_RATIO = 0.0; // Gap between categories
@@ -17,7 +17,12 @@ async function loadEvents() {
   const tertiaryContainer = document.getElementById("tertiary-events");
 
   try {
-    const resp = await fetch("https://corsproxy.io/?" + encodeURIComponent("https://outlook.office365.com/owa/calendar/46dbe62f2a1b4a81bfe272e8ef89baee@ironlynx.it/955ed78282564a95838e1cf67a4b834812868820346018730469/calendar.ics"));
+    const resp = await fetch(
+      "https://corsproxy.io/?" +
+        encodeURIComponent(
+          "https://outlook.office365.com/owa/calendar/46dbe62f2a1b4a81bfe272e8ef89baee@ironlynx.it/955ed78282564a95838e1cf67a4b834812868820346018730469/calendar.ics"
+        )
+    );
     const icsText = await resp.text();
     const events = parseICS(icsText);
     events.sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -28,27 +33,39 @@ async function loadEvents() {
 
     const now = Date.now();
 
-    const mainEvents = events.filter(e => e.category === "main" && new Date(e.end) > now).slice(0, MAIN_EVENTS_TO_SHOW);
-    const secondaryEvents = events.filter(e => e.category === "secondary" && new Date(e.end) > now).slice(0, SECONDARY_EVENTS_TO_SHOW);
-    const tertiaryEvents = events.filter(e => e.category === "tertiary" && new Date(e.end) > now).slice(0, 1);
+    const mainEvents = events
+      .filter((e) => e.category === "main" && new Date(e.end) > now)
+      .slice(0, MAIN_EVENTS_TO_SHOW);
+    const secondaryEvents = events
+      .filter((e) => e.category === "secondary" && new Date(e.end) > now)
+      .slice(0, SECONDARY_EVENTS_TO_SHOW);
+    const tertiaryEvents = events
+      .filter((e) => e.category === "tertiary" && new Date(e.end) > now)
+      .slice(0, 1);
 
     // --- Render main ---
-    mainEvents.forEach(ev => {
+    mainEvents.forEach((ev) => {
       const card = createEventCard(ev);
       card.classList.add("main");
       mainContainer.appendChild(card);
       updateCountdown(ev, card);
       setInterval(() => updateCountdown(ev, card), 1000);
     });
+    fillEmptySlots(mainContainer, mainEvents.length, MAIN_EVENTS_TO_SHOW);
 
     // --- Render secondary ---
-    secondaryEvents.forEach(ev => {
+    secondaryEvents.forEach((ev) => {
       const card = createEventCard(ev);
       card.classList.add("secondary");
       secondaryContainer.appendChild(card);
       updateCountdown(ev, card);
       setInterval(() => updateCountdown(ev, card), 1000);
     });
+    fillEmptySlots(
+      secondaryContainer,
+      secondaryEvents.length,
+      SECONDARY_EVENTS_TO_SHOW
+    );
 
     // --- Render tertiary ---
     if (tertiaryEvents.length > 0) {
@@ -57,6 +74,8 @@ async function loadEvents() {
       tertiaryContainer.appendChild(card);
       updateCountdown(tertiaryEvents[0], card);
       setInterval(() => updateCountdown(tertiaryEvents[0], card), 1000);
+    } else {
+      fillEmptySlots(tertiaryContainer, 0, 1);
     }
 
     scaleAllSections();
@@ -71,23 +90,19 @@ async function loadEvents() {
 // ==============================================
 function parseICS(text) {
   const events = [];
-  
-  // Normalize line breaks and unfold folded lines
-  const normalized = text
-    .replace(/\r\n/g, "\n")
-    .replace(/\n /g, ""); // unfold lines split by ICS format
-  
+
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
   const blocks = normalized.split("BEGIN:VEVENT").slice(1);
 
   for (const block of blocks) {
     const endBlock = block.split("END:VEVENT")[0];
-
-    // Extract fields safely
     const summary = matchField(endBlock, "SUMMARY") || "Untitled";
     const description = matchField(endBlock, "DESCRIPTION") || "";
     const start = matchField(endBlock, "DTSTART");
     const end = matchField(endBlock, "DTEND");
-    const category = (matchField(endBlock, "CATEGORIES") || "secondary").toLowerCase();
+    const category = (
+      matchField(endBlock, "CATEGORIES") || "secondary"
+    ).toLowerCase();
 
     const startISO = parseICSTime(start);
     const endISO = parseICSTime(end);
@@ -97,7 +112,6 @@ function parseICS(text) {
   return events;
 }
 
-// Helper to extract ICS fields
 function matchField(block, key) {
   const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
   const match = block.match(regex);
@@ -105,31 +119,28 @@ function matchField(block, key) {
   return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
 }
 
-// Parse different ICS date/time formats
 function parseICSTime(value) {
   if (!value) return null;
-  
-  // DATE ONLY (e.g. 20251019)
-  if (/^\d{8}$/.test(value)) {
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
-  }
-
-  // DATETIME in UTC (e.g. 20251019T120000Z)
-  if (/^\d{8}T\d{6}Z$/.test(value)) {
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
-  }
-
-  // DATETIME without Z (local time)
-  if (/^\d{8}T\d{6}$/.test(value)) {
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
-  }
-
+  if (/^\d{8}$/.test(value))
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(
+      6,
+      8
+    )}T00:00:00Z`;
+  if (/^\d{8}T\d{6}Z$/.test(value))
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(
+      6,
+      8
+    )}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;
+  if (/^\d{8}T\d{6}$/.test(value))
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(
+      6,
+      8
+    )}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}`;
   return null;
 }
 
-
 // ==============================================
-// 🧩 CREATE EVENT CARD (Clean version — unified padding)
+// 🧩 CREATE EVENT CARD
 // ==============================================
 function createEventCard(ev, isTertiary = false) {
   const card = document.createElement("div");
@@ -137,7 +148,9 @@ function createEventCard(ev, isTertiary = false) {
   if (ev.category === "secondary") card.classList.add("secondary");
   if (isTertiary) card.classList.add("tertiary");
 
-  const descriptionHTML = SHOW_DESCRIPTION ? `<div class="description">${ev.description}</div>` : "";
+  const descriptionHTML = SHOW_DESCRIPTION
+    ? `<div class="description">${ev.description}</div>`
+    : "";
 
   card.innerHTML = `
     <div class="info">
@@ -154,6 +167,21 @@ function createEventCard(ev, isTertiary = false) {
   return card;
 }
 
+// ✅ Create empty placeholders if needed
+function fillEmptySlots(container, currentCount, maxCount) {
+  const missing = maxCount - currentCount;
+  for (let i = 0; i < missing; i++) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "event-card empty-card";
+    placeholder.innerHTML = `
+      <div class="info">
+        <div class="title" style="opacity:0;">&nbsp;</div>
+        <div class="datetime" style="opacity:0;">&nbsp;</div>
+      </div>
+    `;
+    container.appendChild(placeholder);
+  }
+}
 
 // ==============================================
 // ⏱️ COUNTDOWN
@@ -167,57 +195,40 @@ function updateCountdown(ev, card) {
   const timeEl = cd.querySelector(".time");
   const progress = card.querySelector(".progress-bar");
 
+  if (!cd || !label || !timeEl || !progress) return;
+
   if (now < start) {
-    // Event not started yet
     const diff = start - now;
     cd.className = "countdown pending";
     label.textContent = "Starts in:";
-
-    // If more than 24 hours left → show only days
     if (diff >= 24 * 3600000) {
       const days = Math.ceil(diff / (24 * 3600000));
       timeEl.textContent = days + (days === 1 ? " day" : " days");
     } else {
-      // Otherwise show hours/minutes/seconds
       timeEl.textContent = formatTimeSpan(diff);
     }
-
     progress.style.width = "0%";
     card.classList.remove("active");
-
   } else if (now >= start && now < end) {
-    // Event currently in progress
     const diff = end - now;
     const total = end - start;
     const elapsed = now - start;
     const percent = (elapsed / total) * 100;
-
     cd.className = "countdown in-progress";
     label.textContent = "Ends in:";
-
-    // Same logic for long events → show only days if >24h
     if (diff >= 24 * 3600000) {
       const days = Math.ceil(diff / (24 * 3600000));
       timeEl.textContent = days + (days === 1 ? " day" : " days");
     } else {
       timeEl.textContent = formatTimeSpan(diff);
     }
-
     progress.style.width = percent + "%";
-
-    // ✅ Apply active visual style for tertiary events
-    if (card.classList.contains("tertiary")) {
-      card.classList.add("active");
-    }
-
+    if (card.classList.contains("tertiary")) card.classList.add("active");
   } else {
-    // Event finished
     card.classList.add("hidden");
     card.classList.remove("active");
   }
 }
-
-
 
 // ==============================================
 // 🧮 UTILITIES
@@ -226,7 +237,10 @@ function formatTimeSpan(ms) {
   const hours = Math.floor(ms / 3600000);
   const minutes = Math.floor((ms % 3600000) / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
-  return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+  return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(
+    2,
+    "0"
+  )}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 function formatTime(dtStr) {
@@ -271,11 +285,14 @@ function scaleAllSections() {
   const unitHeight = usableHeight / totalRatio;
 
   const applyScale = (cards, ratio) => {
-    cards.forEach(c => {
+    cards.forEach((c) => {
       c.style.height = `${unitHeight * ratio}px`;
       c.style.fontSize = `${unitHeight * 0.25 * ratio}px`;
       c.style.margin = `${unitHeight * GAP_CARD_RATIO / 2}px 0`;
       c.style.padding = "0 2em";
+      if (c.classList.contains("empty-card")) {
+        c.style.visibility = "hidden"; // 🔹 mantiene el hueco visual
+      }
     });
   };
 
@@ -288,7 +305,7 @@ function scaleAllSections() {
 }
 
 // ==============================================
-// 🕒 HEADER CLOCK
+// 🕒 HEADER CLOCK + AUTO REFRESH
 // ==============================================
 function updateCurrentDateTime() {
   const now = new Date();
@@ -306,17 +323,13 @@ function updateCurrentDateTime() {
   });
 }
 
-// ==============================================
-// 🚀 INIT
-// ==============================================
 setInterval(updateCurrentDateTime, 1000);
 window.addEventListener("resize", scaleAllSections);
 updateCurrentDateTime();
 loadEvents();
 
-
-// Refresh events automatically every 5 minutes
+// 🔁 Auto-refresh every minute
 setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
-}, 1 * 60 * 1000); // 1 minute
+}, 60 * 1000);

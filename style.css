@@ -297,3 +297,59 @@ main {
     padding-right: 0;
   }
 }
+
+
+/* 🔒 Password Screen */
+#password-screen {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+}
+
+.login-box {
+  background: #1a1a1a;
+  padding: 2em;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.login-box h2 {
+  color: #fff;
+  margin-bottom: 1em;
+}
+
+.login-box input {
+  padding: 0.6em 1em;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  width: 200px;
+  text-align: center;
+  margin-bottom: 1em;
+  font-size: 1em;
+}
+
+.login-box button {
+  background: #ffcc00;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6em 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-box button:hover {
+  background: #ffe766;
+}
+
+#error-msg {
+  color: #ff6666;
+  margin-top: 0.5em;
+  font-size: 0.9em;
+}

@@ -13,6 +13,15 @@
 </head>
 
 <body>
+  <div id="password-screen">
+    <div class="login-box">
+      <h2>🔒 Protected Access</h2>
+      <input type="password" id="password-input" placeholder="Enter password" />
+      <button onclick="checkPassword()">Enter</button>
+      <p id="error-msg"></p>
+    </div>
+  </div>
+
   <!-- ===========================
        🏁 HEADER
   ============================ -->
@@ -47,6 +56,34 @@
   <!-- ===========================
        ⚙️ SCRIPT
   ============================ -->
+
+  <!-- Tu script principal -->
   <script src="script.js"></script>
+
+  <!-- 🔒 Protección por contraseña -->
+  <script>
+    const CORRECT_PASSWORD = "IronLynx2025"; // ← cámbiala si quieres
+
+    function checkPassword() {
+      const input = document.getElementById("password-input").value;
+      const errorMsg = document.getElementById("error-msg");
+
+      if (input === CORRECT_PASSWORD) {
+        localStorage.setItem("authenticated", "true");
+        document.getElementById("password-screen").style.display = "none";
+      } else {
+        errorMsg.textContent = "Incorrect password. Try again.";
+      }
+    }
+
+    // Si ya se autenticó previamente, no mostrar pantalla de login
+    window.addEventListener("load", () => {
+      if (localStorage.getItem("authenticated") === "true") {
+        document.getElementById("password-screen").style.display = "none";
+      }
+    });
+  </script>
+
+
 </body>
 </html>
