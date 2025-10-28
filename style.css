@@ -266,7 +266,7 @@ main {
 .main .info .title {
   color: var(--accent-yellow);
   font-weight: 700;
-  font-size: 1.6em;
+  font-size: 1.8em;
 }
 .main .countdown .time {
   font-weight: 700;

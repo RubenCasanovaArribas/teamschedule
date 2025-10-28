@@ -1,15 +1,15 @@
 // ==============================================
 // ⚙️ CONFIGURATION
 // ==============================================
-const SHOW_LOCATION = true;  // Shows the location if available
-const MAIN_EVENTS_TO_SHOW = 3; // Number of slots for Main events
-const SECONDARY_EVENTS_TO_SHOW = 4; // Number of slots for Secondary events
-const HEIGHT_RATIO = 0.95; // Use 95% of available height
-const GAP_CARD_RATIO = 0.2; // Gap between cards in same category
-const GAP_CATEGORY_RATIO = 0.0; // Gap between categories
+const SHOW_LOCATION = true;
+const MAIN_EVENTS_TO_SHOW = 3;
+const SECONDARY_EVENTS_TO_SHOW = 4;
+const HEIGHT_RATIO = 0.95;
+const GAP_CARD_RATIO = 0.2;
+const GAP_CATEGORY_RATIO = 0.0;
 
 // ==============================================
-// 🧠 LOAD EVENTS (from calendars.json)
+// 🧠 LOAD EVENTS
 // ==============================================
 async function loadEvents() {
   const mainContainer = document.getElementById("main-events");
@@ -17,63 +17,54 @@ async function loadEvents() {
   const tertiaryContainer = document.getElementById("tertiary-events");
 
   try {
-    // Load JSON configuration with calendar URLs
     const configResp = await fetch("calendars.json");
     const ICS_SOURCES = await configResp.json();
 
-    // Helper: fetch multiple ICS files in parallel and tag category
     const fetchICS = async (urls, category) => {
       const all = await Promise.all(
         urls.map(async (u) => {
           const proxied = "https://corsproxy.io/?" + encodeURIComponent(u);
           const resp = await fetch(proxied);
           const text = await resp.text();
-          return parseICS(text).map((e) => ({ ...e, category }));
+          return parseICS(text).map((e) => ({ ...e, category })); // ✅ asegura categoría
         })
       );
       return all.flat();
     };
 
-    // Fetch all categories in parallel
     const [mainEvents, secondaryEvents, tertiaryEvents] = await Promise.all([
       fetchICS(ICS_SOURCES.main || [], "main"),
       fetchICS(ICS_SOURCES.secondary || [], "secondary"),
       fetchICS(ICS_SOURCES.tertiary || [], "tertiary"),
     ]);
 
-    const allEvents = [...mainEvents, ...secondaryEvents, ...tertiaryEvents];
-    allEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
-
-    // Reset containers
-    mainContainer.innerHTML = "";
-    secondaryContainer.innerHTML = "";
-    tertiaryContainer.innerHTML = "";
-
     const now = Date.now();
 
-    const renderCategory = (events, container, limit, isTertiary = false) => {
+    // Limpieza de contenedores
+    [mainContainer, secondaryContainer, tertiaryContainer].forEach(c => c.innerHTML = "");
+
+    const renderCategory = (events, container, limit, category) => {
       const upcoming = events.filter(e => new Date(e.end) > now).slice(0, limit);
 
-      // Preserve visual balance: create placeholder cards if fewer events
       for (let i = 0; i < limit; i++) {
         const ev = upcoming[i];
         if (ev) {
-          const card = createEventCard(ev, isTertiary);
+          const card = createEventCard(ev);
           container.appendChild(card);
           updateCountdown(ev, card);
           setInterval(() => updateCountdown(ev, card), 1000);
         } else {
           const placeholder = document.createElement("div");
-          placeholder.className = "event-card placeholder";
+          placeholder.className = `event-card placeholder ${category}`;
           placeholder.style.opacity = "0.15";
           container.appendChild(placeholder);
         }
       }
     };
 
-    renderCategory(mainEvents, mainContainer, MAIN_EVENTS_TO_SHOW);
-    renderCategory(secondaryEvents, secondaryContainer, SECONDARY_EVENTS_TO_SHOW);
-    renderCategory(tertiaryEvents, tertiaryContainer, 1, true);
+    renderCategory(mainEvents, mainContainer, MAIN_EVENTS_TO_SHOW, "main");
+    renderCategory(secondaryEvents, secondaryContainer, SECONDARY_EVENTS_TO_SHOW, "secondary");
+    renderCategory(tertiaryEvents, tertiaryContainer, 1, "tertiary");
 
     scaleAllSections();
   } catch (err) {
@@ -83,7 +74,7 @@ async function loadEvents() {
 }
 
 // ==============================================
-// 📅 ICS PARSER (robust for Google/Airbnb/Outlook)
+// 📅 ICS PARSER
 // ==============================================
 function parseICS(text) {
   const events = [];
@@ -94,7 +85,7 @@ function parseICS(text) {
     const endBlock = block.split("END:VEVENT")[0];
     const summary = matchField(endBlock, "SUMMARY") || "Untitled";
     const description = matchField(endBlock, "DESCRIPTION") || "";
-    const location = matchField(endBlock, "LOCATION") || ""; 
+    const location = matchField(endBlock, "LOCATION") || "";
     const start = matchField(endBlock, "DTSTART");
     const end = matchField(endBlock, "DTEND");
 
@@ -106,7 +97,6 @@ function parseICS(text) {
   return events;
 }
 
-// Extract field value safely
 function matchField(block, key) {
   const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
   const match = block.match(regex);
@@ -114,41 +104,28 @@ function matchField(block, key) {
   return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
 }
 
-// Parse dates robustly (handles time zones)
 function parseICSTime(value, block = "") {
   if (!value) return null;
 
-  // If timezone specified (e.g., DTSTART;TZID=Romance Standard Time)
-  const tzMatch = block.match(/TZID=([^:;]+)/);
-  const tzName = tzMatch ? tzMatch[1] : null;
-
-  // DATE ONLY
   if (/^\d{8}$/.test(value))
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T00:00:00Z`;
 
-  // DATETIME UTC (ends with Z)
   if (/^\d{8}T\d{6}Z$/.test(value))
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;
 
-  // Local time → adjust to local timezone (approx)
-  if (/^\d{8}T\d{6}$/.test(value)) {
-    const local = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
-    return local;
-  }
+  if (/^\d{8}T\d{6}$/.test(value))
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}`;
 
   return null;
 }
 
 // ==============================================
-// 🧩 CREATE EVENT CARD (with optional LOCATION)
+// 🧩 CREATE EVENT CARD
 // ==============================================
-function createEventCard(ev, isTertiary = false) {
+function createEventCard(ev) {
   const card = document.createElement("div");
-  card.className = "event-card";
-  if (ev.category === "secondary") card.classList.add("secondary");
-  if (isTertiary) card.classList.add("tertiary");
+  card.classList.add("event-card", ev.category); // ✅ ahora añade .main / .secondary / .tertiary
 
-  // 🔹 Si hay ubicación y está activado SHOW_LOCATION
   const locationHTML = SHOW_LOCATION && ev.location
     ? `<span class="location">📍 ${ev.location}</span>`
     : "";
@@ -157,8 +134,7 @@ function createEventCard(ev, isTertiary = false) {
     <div class="info">
       <div class="title">${ev.title}</div>
       <div class="datetime">
-        ${formatTime(ev.start)} — ${formatTime(ev.end)}
-        ${locationHTML}
+        ${formatTime(ev.start)} — ${formatTime(ev.end)} ${locationHTML}
       </div>
     </div>
     <div class="countdown pending">
@@ -167,9 +143,9 @@ function createEventCard(ev, isTertiary = false) {
     </div>
     <div class="progress-bar"></div>
   `;
+
   return card;
 }
-
 
 // ==============================================
 // ⏱️ COUNTDOWN + PROGRESS
@@ -215,7 +191,8 @@ function updateCountdown(ev, card) {
     }
 
     progress.style.width = percent + "%";
-    if (card.classList.contains("tertiary")) card.classList.add("active");
+    card.classList.add("active");
+
   } else {
     card.classList.add("hidden");
   }
@@ -242,46 +219,35 @@ function formatTime(dtStr) {
 }
 
 // ==============================================
-// 🧱 SCALING + SPACING LOGIC
+// 🧱 SCALING + SPACING
 // ==============================================
 function scaleAllSections() {
   const headerHeight = document.querySelector("header").offsetHeight;
   const totalHeight = window.innerHeight - headerHeight;
   const usableHeight = totalHeight * HEIGHT_RATIO;
 
-  const mainCards = document.querySelectorAll("#main-events .event-card:not(.hidden)");
-  const secondaryCards = document.querySelectorAll("#secondary-events .event-card:not(.hidden)");
-  const tertiaryCards = document.querySelectorAll("#tertiary-events .event-card:not(.hidden)");
+  const sections = [
+    { cards: "#main-events .event-card:not(.hidden)", ratio: 1.0 },
+    { cards: "#secondary-events .event-card:not(.hidden)", ratio: 0.85 },
+    { cards: "#tertiary-events .event-card:not(.hidden)", ratio: 0.7 },
+  ];
 
-  const mainCount = mainCards.length;
-  const secondaryCount = secondaryCards.length;
-  const tertiaryCount = tertiaryCards.length;
-
-  const mainRatio = 1.0;
-  const secondaryRatio = 0.85;
-  const tertiaryRatio = 0.7;
-
-  const totalRatio =
-    mainCount * mainRatio +
-    secondaryCount * secondaryRatio +
-    tertiaryCount * tertiaryRatio +
-    (mainCount + secondaryCount + tertiaryCount - 3) * GAP_CARD_RATIO +
-    2 * GAP_CATEGORY_RATIO;
+  const allCards = sections.flatMap(s => Array.from(document.querySelectorAll(s.cards)));
+  const totalRatio = sections.reduce((sum, s) => {
+    const count = document.querySelectorAll(s.cards).length;
+    return sum + count * s.ratio;
+  }, 0) + (allCards.length - 3) * GAP_CARD_RATIO + 2 * GAP_CATEGORY_RATIO;
 
   const unitHeight = usableHeight / totalRatio;
 
-  const applyScale = (cards, ratio) => {
-    cards.forEach((c) => {
+  sections.forEach(({ cards, ratio }) => {
+    document.querySelectorAll(cards).forEach((c) => {
       c.style.height = `${unitHeight * ratio}px`;
       c.style.fontSize = `${unitHeight * 0.25 * ratio}px`;
       c.style.margin = `${unitHeight * GAP_CARD_RATIO / 2}px 0`;
       c.style.padding = "0 2em";
     });
-  };
-
-  applyScale(mainCards, mainRatio);
-  applyScale(secondaryCards, secondaryRatio);
-  applyScale(tertiaryCards, tertiaryRatio);
+  });
 }
 
 // ==============================================
@@ -310,8 +276,6 @@ setInterval(updateCurrentDateTime, 1000);
 window.addEventListener("resize", scaleAllSections);
 updateCurrentDateTime();
 loadEvents();
-
-// Auto-refresh every 5 min
 setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();

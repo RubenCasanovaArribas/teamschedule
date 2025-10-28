@@ -13,6 +13,7 @@
 </head>
 
 <body>
+  <!-- 🔒 Password overlay -->
   <div id="password-screen">
     <div class="login-box">
       <h2>🔒 Protected Access</h2>
@@ -43,26 +44,19 @@
        🧱 MAIN LAYOUT
   ============================ -->
   <main>
-    <!-- MAIN EVENTS SECTION -->
     <div id="main-events" class="events-section"></div>
-
-    <!-- SECONDARY EVENTS SECTION -->
     <div id="secondary-events" class="events-section"></div>
-
-    <!-- TERTIARY EVENTS SECTION -->
     <div id="tertiary-events" class="events-section"></div>
   </main>
 
   <!-- ===========================
        ⚙️ SCRIPT
   ============================ -->
-
-  <!-- Tu script principal -->
   <script src="script.js"></script>
 
-  <!-- 🔒 Protección por contraseña -->
+  <!-- 🔒 Password Script -->
   <script>
-    const CORRECT_PASSWORD = "IronLynx2025"; // ← cámbiala si quieres
+    const CORRECT_PASSWORD = "IronLynx2025";
 
     function checkPassword() {
       const input = document.getElementById("password-input").value;
@@ -76,14 +70,11 @@
       }
     }
 
-    // Si ya se autenticó previamente, no mostrar pantalla de login
     window.addEventListener("load", () => {
       if (localStorage.getItem("authenticated") === "true") {
         document.getElementById("password-screen").style.display = "none";
       }
     });
   </script>
-
-
 </body>
 </html>
