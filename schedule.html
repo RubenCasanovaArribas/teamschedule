@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Race Timetable – Full Schedule</title>
+  <title>Race Timetable – Chronological View</title>
 
-  <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Main Style -->
   <link rel="stylesheet" href="style.css" />
 
-  <style>
+<style>
   :root {
-    --event-gap: 10px; /* 🔧 Controla la separación entre cards */
+    --gap-between-days: 24px;     /* espacio entre grupos de días */
+    --gap-between-cards: 4px;    /* espacio entre tarjetas del mismo día */
   }
 
   /* ==========================
@@ -24,7 +22,7 @@
     top: 0;
     z-index: 5;
     width: 100%;
-    margin: 12px 0 6px 0;
+    margin-bottom: calc(var(--gap-between-cards) / 2);
     background-color: #fefefe;
     color: #111;
     font-weight: 700;
@@ -33,12 +31,12 @@
     padding: 6px 12px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 4px rgba(255,255,255,0.1);
     box-sizing: border-box;
   }
 
   /* ==========================
-     Scrollable container
+     Scrollable container (days)
   ========================== */
   #all-events {
     width: 90%;
@@ -46,31 +44,44 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
+    gap: var(--gap-between-days);
     overflow-y: auto;
     overflow-x: hidden;
     height: calc(100vh - 90px);
     scroll-behavior: smooth;
-    gap: var(--event-gap); /* 🟡 Controla la separación entre grupos */
     padding: 12px 16px 20px 0;
     box-sizing: border-box;
   }
 
+  /* ===== Scrollbar styling (como antes) ===== */
   #all-events::-webkit-scrollbar {
     width: 12px;
   }
+
   #all-events::-webkit-scrollbar-thumb {
     background-color: #333;
     border-radius: 10px;
   }
 
+  #all-events::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   /* ==========================
-     Group of events (per day)
+     Day group (usa gap moderno)
   ========================== */
   .day-group {
     display: flex;
     flex-direction: column;
-    gap: var(--event-gap); /* 🟢 Controla el espacio entre cards */
-    padding-bottom: 10px;
+    gap: var(--gap-between-cards);
+  }
+
+  /* Fallback por si gap no se aplica (antiguos navegadores) */
+  .day-group .event-card {
+    margin-bottom: var(--gap-between-cards);
+  }
+  .day-group .event-card:last-child {
+    margin-bottom: 0;
   }
 
   /* ==========================
@@ -87,26 +98,40 @@
     align-items: center;
     gap: 12px;
     overflow: hidden;
-    margin: 0 auto;
+    margin: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+    box-sizing: border-box;
   }
 
   .event-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 16px rgba(255, 254, 0, 0.25);
+    box-shadow: 0 4px 16px rgba(255,254,0,0.25);
   }
 
-  /* Active background when event is in progress */
   .event-card.active {
     background-color: var(--tertiary-bg-active);
-    box-shadow: 0 0 12px rgba(0, 255, 100, 0.25);
+    box-shadow: 0 0 12px rgba(0,255,100,0.25);
   }
 
+  /* Progress bar */
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: var(--accent-green);
+    width: 0%;
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+    transition: width 0.5s linear;
+  }
+
+  /* Category badges */
   .badge {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 8px;
-    font-size: 0.75em;
+    font-size: 0.6em;
     font-weight: 700;
     color: #111;
     text-transform: uppercase;
@@ -114,9 +139,9 @@
     margin-top: 4px;
   }
 
-  .badge.main { background-color: var(--accent-yellow); }
-  .badge.secondary { background-color: #ccc; color: #111; }
-  .badge.tertiary { background-color: #777; color: #111; }
+  .badge.main { background-color: red; }
+  .badge.secondary { background-color: yellow; color: #111; }
+  .badge.tertiary { background-color: green; color: #111; }
 
   .info-left {
     display: flex;
@@ -144,26 +169,20 @@
 
   .info-right .datetime {
     font-size: 1em;
-    color: var(--secondary-text);
+    color: var(--text-color);
   }
 
   .info-right .description {
     font-size: 1em;
-    color: var(--text-color);
+    color: var(--secondary-text);
   }
 
-  /* Progress bar like index.html */
-  .progress-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 4px;
-    background: var(--accent-green);
-    width: 0%;
-    border-bottom-left-radius: var(--border-radius);
-    border-bottom-right-radius: var(--border-radius);
-    transition: width 0.5s linear;
-  }
+  .info-right .location {
+  font-size: 0.9em;
+  color: #aaa;
+  font-style: italic;
+}
+
 
   @media (max-width: 800px) {
     .event-card {
@@ -176,19 +195,20 @@
   }
 </style>
 
-</head>
 
+
+
+
+</head>
 <body>
   <!-- ==========================
-       HEADER
+       🏁 Header
   ========================== -->
   <header>
-    <div class="logo" style="cursor:pointer;" onclick="window.location.href='index.html'">
+    <div class="logo">
       <img src="logo.svg" alt="Iron Lynx Logo" class="logo-img" />
     </div>
-
-    <div class="header-title">2025 FIA WEC - Bahrain</div>
-
+    <div class="header-title">2025 FIA WEC - Bahrain (Chronological)</div>
     <div id="current-datetime" style="cursor:pointer;" onclick="window.location.href='index.html'">
       <div class="date-line">Loading…</div>
       <div class="time-line">--:--:--</div>
@@ -196,313 +216,244 @@
   </header>
 
   <!-- ==========================
-       MAIN CONTENT
+       📅 Events
   ========================== -->
   <main>
     <div id="all-events"></div>
   </main>
 
   <!-- ==========================
-       SCRIPT
+       ⚙️ Script
   ========================== -->
   <script>
-// ==============================================
-// 📅 LOAD AND PARSE EVENTS (Outlook-compatible)
-// ==============================================
-async function loadAllEvents() {
-  const container = document.getElementById("all-events");
-  try {
-    const resp = await fetch(
-      "https://corsproxy.io/?" +
-      encodeURIComponent(
-        "https://outlook.office365.com/owa/calendar/46dbe62f2a1b4a81bfe272e8ef89baee@ironlynx.it/955ed78282564a95838e1cf67a4b834812868820346018730469/calendar.ics"
-      )
-    );
+  async function loadAllEvents() {
+    const container = document.getElementById("all-events");
+    try {
+      const configResp = await fetch("calendars.json");
+      const ICS_SOURCES = await configResp.json();
 
-    const icsText = await resp.text();
-    const events = parseICS(icsText);
-    events.sort((a, b) => new Date(a.start) - new Date(b.start));
+      const fetchICS = async (urls, category) => {
+        const all = await Promise.all(
+          urls.map(async (u) => {
+            const proxied = "https://corsproxy.io/?" + encodeURIComponent(u);
+            const resp = await fetch(proxied);
+            const text = await resp.text();
+            return parseICS(text).map(e => ({ ...e, category }));
+          })
+        );
+        return all.flat();
+      };
 
-    container.innerHTML = "";
-    renderEventsByDay(events, container);
-    scrollToCurrentEvent(events);
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = "Error loading ICS events.";
+      const [mainEvents, secondaryEvents, tertiaryEvents] = await Promise.all([
+        fetchICS(ICS_SOURCES.main || [], "main"),
+        fetchICS(ICS_SOURCES.secondary || [], "secondary"),
+        fetchICS(ICS_SOURCES.tertiary || [], "tertiary"),
+      ]);
+
+      const allEvents = [...mainEvents, ...secondaryEvents, ...tertiaryEvents];
+      allEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      container.innerHTML = "";
+      renderEventsByDay(allEvents, container);
+      scrollToCurrentEvent(allEvents);
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = "Error loading ICS events.";
+    }
   }
-}
 
-// ==============================================
-// 📆 ROBUST ICS PARSER (handles TZID like "Romance Standard Time")
-// ==============================================
-function matchFieldWithParams(block, key) {
-  const regex = new RegExp(`${key}((?:;[^:]+)*)?:([^\\n\\r]+)`);
-  const match = block.match(regex);
-  if (!match) return null;
-  const rawParams = match[1] || "";
-  const value = match[2].trim();
-  const params = {};
-  if (rawParams) {
-    const parts = rawParams.split(";").filter(Boolean);
-    parts.forEach(p => {
-      const [k, v] = p.split("=");
-      if (k) params[k.toUpperCase()] = v ? v : true;
+  // ---------- ICS PARSER ----------
+  function parseICS(text) {
+    const events = [];
+    const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
+    const blocks = normalized.split("BEGIN:VEVENT").slice(1);
+
+    for (const block of blocks) {
+      const endBlock = block.split("END:VEVENT")[0];
+      const summary = matchField(endBlock, "SUMMARY") || "Untitled";
+      const description = matchField(endBlock, "DESCRIPTION") || "";
+      const location = matchField(endBlock, "LOCATION") || "";
+      const start = matchField(endBlock, "DTSTART");
+      const end = matchField(endBlock, "DTEND");
+      const startISO = parseICSTime(start, endBlock);
+      const endISO = parseICSTime(end, endBlock);
+      events.push({ title: summary, description, location, start: startISO, end: endISO });
+    }
+    return events;
+  }
+
+  function matchField(block, key) {
+    const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
+    const match = block.match(regex);
+    if (!match) return null;
+    return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
+  }
+
+  function parseICSTime(value, block = "") {
+    if (!value) return null;
+    if (/^\d{8}$/.test(value))
+      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
+    if (/^\d{8}T\d{6}Z$/.test(value))
+      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
+    if (/^\d{8}T\d{6}$/.test(value))
+      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+    return null;
+  }
+
+  // ---------- RENDER ----------
+  function renderEventsByDay(events, container) {
+    const grouped = groupEventsByDay(events);
+    Object.keys(grouped).forEach(day => {
+      const dayGroup = document.createElement("div");
+      dayGroup.className = "day-group"; // ✅ esta clase hace que funcione el gap
+      const dayHeader = document.createElement("div");
+      dayHeader.className = "day-separator";
+      dayHeader.textContent = formatDayLabel(day);
+      dayGroup.appendChild(dayHeader);
+
+      grouped[day].forEach(ev => {
+        const card = createEventCard(ev);
+        dayGroup.appendChild(card);
+        updateProgress(ev, card);
+        setInterval(() => updateProgress(ev, card), 1000);
+      });
+
+      container.appendChild(dayGroup);
     });
   }
-  return { params, value };
-}
 
-const WINDOWS_TO_IANA = {
-  "romance standard time": "Europe/Madrid",
-  "w. europe standard time": "Europe/Berlin",
-  "central europe standard time": "Europe/Budapest",
-  "gmt standard time": "Europe/London",
-  "eastern standard time": "America/New_York",
-  "cet": "Europe/Paris"
-};
-
-function tzLocalToISOString(year, month, day, hour, minute, second, timeZone) {
-  const target = {
-    year: String(year).padStart(4, "0"),
-    month: String(month).padStart(2, "0"),
-    day: String(day).padStart(2, "0"),
-    hour: String(hour).padStart(2, "0"),
-    minute: String(minute).padStart(2, "0"),
-    second: String(second).padStart(2, "0"),
-  };
-
-  const dtf = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  function formatParts(ts) {
-    const parts = dtf.formatToParts(new Date(ts));
-    const out = {};
-    for (const p of parts) {
-      if (p.type !== "literal") out[p.type] = p.value;
-    }
-    return out;
-  }
-
-  const guess = Date.UTC(year, month - 1, day, hour, minute, second);
-  let low = guess - 36 * 3600 * 1000;
-  let high = guess + 36 * 3600 * 1000;
-
-  for (let i = 0; i < 60; i++) {
-    const mid = Math.floor((low + high) / 2);
-    const parts = formatParts(mid);
-
-    const midValue = `${parts.year}${parts.month}${parts.day}${parts.hour}${parts.minute}${parts.second}`;
-    const targetValue = `${target.year}${target.month}${target.day}${target.hour}${target.minute}${target.second}`;
-
-    if (midValue === targetValue) return new Date(mid).toISOString();
-    if (midValue < targetValue) low = mid + 1;
-    else high = mid - 1;
-  }
-
-  return new Date(Date.UTC(year, month - 1, day, hour, minute, second)).toISOString();
-}
-
-function parseICSTimeWithParams(value, params = {}) {
-  if (!value) return null;
-  if (/^\d{8}$/.test(value))
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
-
-  if (/^\d{8}T\d{6}Z$/.test(value))
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
-
-  if (/^\d{8}T\d{6}$/.test(value)) {
-    const year = Number(value.slice(0,4));
-    const month = Number(value.slice(4,6));
-    const day = Number(value.slice(6,8));
-    const hour = Number(value.slice(9,11));
-    const minute = Number(value.slice(11,13));
-    const second = Number(value.slice(13,15));
-
-    if (params && params.TZID) {
-      const tzid = params.TZID;
-      const mapped = WINDOWS_TO_IANA[tzid.toLowerCase()];
-      const iana = mapped || tzid;
-      try {
-        return tzLocalToISOString(year, month, day, hour, minute, second, iana);
-      } catch {
-        return new Date(year, month - 1, day, hour, minute, second).toISOString();
-      }
-    }
-
-    return new Date(year, month - 1, day, hour, minute, second).toISOString();
-  }
-
-  const parsed = new Date(value);
-  if (!isNaN(parsed.getTime())) return parsed.toISOString();
-  return null;
-}
-
-function parseICS(text) {
-  const events = [];
-  const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
-  const blocks = normalized.split("BEGIN:VEVENT").slice(1);
-  for (const block of blocks) {
-    const endBlock = block.split("END:VEVENT")[0];
-    const summary = matchField(endBlock, "SUMMARY") || "Untitled";
-    const description = matchField(endBlock, "DESCRIPTION") || "";
-    const startRaw = matchFieldWithParams(endBlock, "DTSTART");
-    const endRaw = matchFieldWithParams(endBlock, "DTEND");
-    const category = (matchField(endBlock, "CATEGORIES") || "secondary").toLowerCase();
-
-    const startISO = parseICSTimeWithParams(startRaw?.value, startRaw?.params);
-    const endISO = parseICSTimeWithParams(endRaw?.value, endRaw?.params);
-
-    events.push({ title: summary, description, start: startISO, end: endISO, category });
-  }
-  return events;
-}
-
-function matchField(block, key) {
-  const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
-  const match = block.match(regex);
-  if (!match) return null;
-  return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
-}
-
-// ==============================================
-// 🧩 RENDER EVENTS BY DAY
-// ==============================================
-function renderEventsByDay(events, container) {
-  const grouped = groupEventsByDay(events);
-  Object.keys(grouped).forEach(day => {
-    const dayGroup = document.createElement("div");
-    dayGroup.className = "day-group";
-
-    const dayHeader = document.createElement("div");
-    dayHeader.className = "day-separator";
-    dayHeader.textContent = formatDayLabel(day);
-
-    dayGroup.appendChild(dayHeader);
-
-    grouped[day].forEach(ev => {
-      const card = createEventCard(ev);
-      dayGroup.appendChild(card);
-      updateProgress(ev, card);
-      setInterval(() => updateProgress(ev, card), 1000);
+  function groupEventsByDay(events) {
+    const groups = {};
+    events.forEach(ev => {
+      const dayKey = new Date(ev.start).toISOString().split("T")[0];
+      if (!groups[dayKey]) groups[dayKey] = [];
+      groups[dayKey].push(ev);
     });
-
-    container.appendChild(dayGroup);
-  });
-}
-
-function groupEventsByDay(events) {
-  const groups = {};
-  events.forEach(ev => {
-    const dayKey = new Date(ev.start).toISOString().split("T")[0];
-    if (!groups[dayKey]) groups[dayKey] = [];
-    groups[dayKey].push(ev);
-  });
-  return groups;
-}
-
-function formatDayLabel(dateString) {
-  const d = new Date(dateString);
-  return d.toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function createEventCard(ev) {
-  const card = document.createElement("div");
-  card.className = "event-card " + ev.category;
-  card.innerHTML = `
-    <div class="info-left">
-      <div class="title">${ev.title}</div>
-      <div class="badge ${ev.category}">${ev.category}</div>
-    </div>
-    <div class="info-right">
-      <div class="datetime">${formatTime(ev.start)} — ${formatTime(ev.end)}</div>
-      <div class="description">${ev.description}</div>
-    </div>
-    <div class="progress-bar"></div>
-  `;
-  return card;
-}
-
-function updateProgress(ev, card) {
-  const now = new Date().getTime();
-  const start = new Date(ev.start).getTime();
-  const end = new Date(ev.end).getTime();
-  const progress = card.querySelector(".progress-bar");
-
-  if (now >= start && now < end) {
-    const total = end - start;
-    const elapsed = now - start;
-    const percent = (elapsed / total) * 100;
-    progress.style.width = percent + "%";
-    progress.style.display = "block";
-  } else {
-    progress.style.display = "none";
+    return groups;
   }
-}
 
-function formatTime(dtStr) {
-  const d = new Date(dtStr);
-  return d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
+  function createEventCard(ev) {
+    const card = document.createElement("div");
+    card.className = `event-card ${ev.category}`;
+    card.innerHTML = `
+      <div class="info-left">
+        <div class="title">${ev.title}</div>
+        <div class="badge ${ev.category}">${ev.category}</div>
+      </div>
+      <div class="info-right">
+        <div class="datetime">${formatTime(ev.start)} — ${formatTime(ev.end)}</div>
+        ${ev.description ? `<div class="description">${ev.description}</div>` : ""}
+        ${ev.location ? `<div class="location">📍 ${ev.location}</div>` : ""}
+      </div>
+      <div class="progress-bar"></div>
+    `;
+    return card;
+  }
 
-function updateCurrentDateTime() {
-  const now = new Date();
-  document.querySelector("#current-datetime .date-line").textContent =
-    now.toLocaleDateString("en-GB", {
+  function updateProgress(ev, card) {
+    const now = new Date().getTime();
+    const start = new Date(ev.start).getTime();
+    const end = new Date(ev.end).getTime();
+    const progress = card.querySelector(".progress-bar");
+
+    if (now >= start && now < end) {
+      const total = end - start;
+      const elapsed = now - start;
+      const percent = (elapsed / total) * 100;
+      progress.style.width = percent + "%";
+      progress.style.display = "block";
+      card.classList.add("active");
+    } else {
+      progress.style.display = "none";
+      card.classList.remove("active");
+    }
+  }
+
+  function formatDayLabel(dateString) {
+    const d = new Date(dateString);
+    return d.toLocaleDateString("en-GB", {
       weekday: "long",
       day: "2-digit",
       month: "long",
-      year: "numeric",
+      year: "numeric"
     });
-  document.querySelector("#current-datetime .time-line").textContent =
-    now.toLocaleTimeString("en-GB", {
+  }
+
+  function formatTime(dtStr) {
+    const d = new Date(dtStr);
+    return d.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-      hour12: false,
+      hour12: false
     });
-}
-
-function scrollToCurrentEvent(events) {
-  const now = Date.now();
-  const currentOrNext = events.find(ev => new Date(ev.end).getTime() > now);
-  if (currentOrNext) {
-    setTimeout(() => {
-      const cards = document.querySelectorAll(".event-card");
-      for (const card of cards) {
-        if (card.querySelector(".title").textContent === currentOrNext.title) {
-          card.scrollIntoView({ behavior: "smooth", block: "center" });
-          break;
-        }
-      }
-    }, 800);
   }
-}
 
-// ==============================================
-// 🚀 INIT
-// ==============================================
-setInterval(updateCurrentDateTime, 1000);
-updateCurrentDateTime();
-loadAllEvents();
+  function scrollToCurrentEvent(events) {
+    const now = Date.now();
+
+    // Prefer event currently in progress; if none, next future event
+    const current = events.find(ev => new Date(ev.start).getTime() <= now && new Date(ev.end).getTime() > now);
+    const next = events.find(ev => new Date(ev.start).getTime() > now);
+    const target = current || next;
+    if (!target) return;
+
+    // slight delay so DOM is rendered
+    setTimeout(() => {
+      const container = document.getElementById("all-events");
+      if (!container) return;
+
+      const cards = Array.from(container.querySelectorAll(".event-card"));
+      const targetCard = cards.find(card => {
+        const t = card.querySelector(".title");
+        return t && t.textContent === target.title;
+      });
+      if (!targetCard) return;
+
+      // measure header height (if any)
+      const headerEl = document.querySelector("header");
+      const headerHeight = headerEl ? headerEl.offsetHeight : 0;
+
+      // find the day-separator that belongs to this card (it is the .day-separator inside the same day-group)
+      let dayGroup = targetCard.closest(".day-group");
+      let sepHeight = 0;
+      if (dayGroup) {
+        const sep = dayGroup.querySelector(".day-separator");
+        if (sep) sepHeight = sep.offsetHeight;
+      }
+
+      // compute card top relative to the scrollable container
+      const cardRect = targetCard.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const relativeTop = cardRect.top - containerRect.top + container.scrollTop;
+
+      // offset so the card appears just under the day-separator + header
+      const extraMargin = -68; // small breathing space
+      const targetScroll = Math.max(0, relativeTop - sepHeight - headerHeight - extraMargin);
+
+      // perform smooth scroll on the container
+      container.scrollTo({
+        top: targetScroll,
+        behavior: "smooth"
+      });
+    }, 180); // small timeout to ensure rendering/layout
+  }
+
+
+
+  function updateCurrentDateTime() {
+    const now = new Date();
+    document.querySelector("#current-datetime .date-line").textContent =
+      now.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+    document.querySelector("#current-datetime .time-line").textContent =
+      now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  }
+
+  setInterval(updateCurrentDateTime, 1000);
+  updateCurrentDateTime();
+  loadAllEvents();
 </script>
+
 
 </body>
 </html>

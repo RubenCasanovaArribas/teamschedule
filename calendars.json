@@ -1,0 +1,13 @@
+{
+  "main": [
+    "https://outlook.office365.com/owa/calendar/46dbe62f2a1b4a81bfe272e8ef89baee@ironlynx.it/27fa130129b64032876f18c0a45664767557076999010270143/calendar.ics "
+  ],
+  "secondary": [
+    "https://outlook.office365.com/owa/calendar/46dbe62f2a1b4a81bfe272e8ef89baee@ironlynx.it/84ae9ab8cd03437b830b2ef469e9dbd514182477970694960183/calendar.ics ",
+    "https://outlook.office365.com/owa/calendar/.../team_meetings.ics",
+    "https://outlook.office365.com/owa/calendar/.../marketing_events.ics"
+  ],
+  "tertiary": [
+    "https://outlook.office365.com/owa/calendar/46dbe62f2a1b4a81bfe272e8ef89baee@ironlynx.it/1da012ca74854229b8c317ff0388ea2f15076329196005369962/calendar.ics "
+  ]
+}

@@ -170,6 +170,12 @@ main {
   color: var(--accent-yellow);
 }
 
+.info .location {
+  font-size: 0.9em;
+  color: var(--secondary-text);
+  margin-top: 2px;
+}
+
 .info .description {
   color: var(--secondary-text);
   font-size: 0.8em;
@@ -179,6 +185,22 @@ main {
   font-size: 0.8em;
   color: #808080;
 }
+
+.datetime {
+  font-size: 1em;
+  color: var(--secondary-text);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.datetime .location {
+  font-size: 0.9em;
+  color: var(--secondary-text);
+  opacity: 0.8;
+}
+
 
 /* ==============================================
    ⏱️ Countdown
@@ -272,12 +294,13 @@ main {
   background: var(--tertiary-bg-active);
 }
 .tertiary .info .title {
-  color: var(--accent-yellow);
+  color: var(--text-color);
   font-weight: 400; /* no bold */
   font-size: 1.1em;
 }
 .tertiary .countdown .time {
   font-weight: 400;
+  color: var(--text-color);
 }
 .tertiary .countdown.in-progress .time {
   color: var(--accent-green);
