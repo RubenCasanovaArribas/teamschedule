@@ -1,7 +1,8 @@
 // ==============================================
 // ⚙️ CONFIGURATION
 // ==============================================
-const SHOW_LOCATION = true;
+const SHOW_LOCATION = true;       // Mostrar ubicación si existe
+const SHOW_DESCRIPTION = true;    // Mostrar descripción si existe
 const MAIN_EVENTS_TO_SHOW = 3;
 const SECONDARY_EVENTS_TO_SHOW = 4;
 const HEIGHT_RATIO = 0.95;
@@ -26,7 +27,7 @@ async function loadEvents() {
           const proxied = "https://corsproxy.io/?" + encodeURIComponent(u);
           const resp = await fetch(proxied);
           const text = await resp.text();
-          return parseICS(text).map((e) => ({ ...e, category })); // ✅ asegura categoría
+          return parseICS(text).map((e) => ({ ...e, category }));
         })
       );
       return all.flat();
@@ -39,8 +40,6 @@ async function loadEvents() {
     ]);
 
     const now = Date.now();
-
-    // Limpieza de contenedores
     [mainContainer, secondaryContainer, tertiaryContainer].forEach(c => c.innerHTML = "");
 
     const renderCategory = (events, container, limit, category) => {
@@ -124,18 +123,19 @@ function parseICSTime(value, block = "") {
 // ==============================================
 function createEventCard(ev) {
   const card = document.createElement("div");
-  card.classList.add("event-card", ev.category); // ✅ ahora añade .main / .secondary / .tertiary
+  card.classList.add("event-card", ev.category);
 
-  const locationHTML = SHOW_LOCATION && ev.location
-    ? `<span class="location">📍 ${ev.location}</span>`
-    : "";
+  const parts = [];
+  parts.push(`${formatTime(ev.start)} — ${formatTime(ev.end)}`);
+  if (SHOW_DESCRIPTION && ev.description) parts.push(`[ ${ev.description}]`);
+  if (SHOW_LOCATION && ev.location) parts.push(`📍 ${ev.location}`);
+
+  const infoLine = parts.join(" • ");
 
   card.innerHTML = `
     <div class="info">
       <div class="title">${ev.title}</div>
-      <div class="datetime">
-        ${formatTime(ev.start)} — ${formatTime(ev.end)} ${locationHTML}
-      </div>
+      <div class="details-line">${infoLine}</div>
     </div>
     <div class="countdown pending">
       <div class="label">Loading…</div>
@@ -192,7 +192,6 @@ function updateCountdown(ev, card) {
 
     progress.style.width = percent + "%";
     card.classList.add("active");
-
   } else {
     card.classList.add("hidden");
   }

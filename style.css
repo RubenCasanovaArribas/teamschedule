@@ -179,6 +179,8 @@ main {
 .info .description {
   color: var(--secondary-text);
   font-size: 0.8em;
+  margin-top: 2px;
+  line-height: 1.3;
 }
 
 .info .datetime {
@@ -200,6 +202,18 @@ main {
   color: var(--secondary-text);
   opacity: 0.8;
 }
+
+.info .details-line {
+  font-size: 0.9em;
+  color: var(--secondary-text);
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  white-space: pre; /* <-- mantiene los espacios del separador */
+}
+
 
 
 /* ==============================================
@@ -272,6 +286,11 @@ main {
   font-weight: 700;
 }
 
+.main .details-line {
+  white-space: normal; /* permite salto de línea natural */
+  line-height: 1.6;
+}
+
 /* SECONDARY */
 .secondary .info .title {
   color: var(--text-color);
@@ -284,6 +303,11 @@ main {
 }
 .secondary .countdown.in-progress .time {
   color: var(--accent-green); /* change when active */
+}
+
+.secondary .details-line {
+  white-space: normal; /* permite salto de línea natural */
+  line-height: 1.4;
 }
 
 /* TERTIARY */
@@ -305,6 +329,12 @@ main {
 .tertiary .countdown.in-progress .time {
   color: var(--accent-green);
 }
+
+.tertiary .details-line {
+  white-space: normal; /* permite salto de línea natural */
+  line-height: 1.2;
+}
+
 
 /* ==============================================
    📱 Responsive
