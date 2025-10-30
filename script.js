@@ -5,7 +5,7 @@ const SHOW_LOCATION = true;       // Mostrar ubicación si existe
 const SHOW_DESCRIPTION = true;    // Mostrar descripción si existe
 const MAIN_EVENTS_TO_SHOW = 3;
 const SECONDARY_EVENTS_TO_SHOW = 4;
-const HEIGHT_RATIO = 0.95;
+const HEIGHT_RATIO = 0.92;
 const GAP_CARD_RATIO = 0.2;
 const GAP_CATEGORY_RATIO = 0.0;
 
@@ -225,29 +225,53 @@ function scaleAllSections() {
   const totalHeight = window.innerHeight - headerHeight;
   const usableHeight = totalHeight * HEIGHT_RATIO;
 
-  const sections = [
-    { cards: "#main-events .event-card:not(.hidden)", ratio: 1.0 },
-    { cards: "#secondary-events .event-card:not(.hidden)", ratio: 0.85 },
-    { cards: "#tertiary-events .event-card:not(.hidden)", ratio: 0.7 },
-  ];
+  const mainCards = document.querySelectorAll("#main-events .event-card:not(.hidden)");
+  const secondaryCards = document.querySelectorAll("#secondary-events .event-card:not(.hidden)");
+  const tertiaryCards = document.querySelectorAll("#tertiary-events .event-card:not(.hidden)");
 
-  const allCards = sections.flatMap(s => Array.from(document.querySelectorAll(s.cards)));
-  const totalRatio = sections.reduce((sum, s) => {
-    const count = document.querySelectorAll(s.cards).length;
-    return sum + count * s.ratio;
-  }, 0) + (allCards.length - 3) * GAP_CARD_RATIO + 2 * GAP_CATEGORY_RATIO;
+  const mainCount = mainCards.length;
+  const secondaryCount = secondaryCards.length;
+  const tertiaryCount = tertiaryCards.length;
+
+  const mainRatio = 1.0;
+  const secondaryRatio = 0.85;
+  const tertiaryRatio = 0.7;
+
+  const totalRatio =
+    mainCount * mainRatio +
+    secondaryCount * secondaryRatio +
+    tertiaryCount * tertiaryRatio +
+    (mainCount + secondaryCount + tertiaryCount - 3) * GAP_CARD_RATIO +
+    2 * GAP_CATEGORY_RATIO;
 
   const unitHeight = usableHeight / totalRatio;
 
-  sections.forEach(({ cards, ratio }) => {
-    document.querySelectorAll(cards).forEach((c) => {
+  // ✅ Responsive: si es móvil, desactiva el escalado dinámico
+  const isMobile = window.innerWidth <= 600;
+  if (isMobile) {
+    document.querySelectorAll(".event-card").forEach((c) => {
+      c.style.height = "auto";
+      c.style.fontSize = "1em";
+      c.style.margin = "8px 0";
+      c.style.padding = "12px";
+    });
+    return; // no aplicamos escalado dinámico en móviles
+  }
+
+  const applyScale = (cards, ratio) => {
+    cards.forEach((c) => {
       c.style.height = `${unitHeight * ratio}px`;
       c.style.fontSize = `${unitHeight * 0.25 * ratio}px`;
       c.style.margin = `${unitHeight * GAP_CARD_RATIO / 2}px 0`;
       c.style.padding = "0 2em";
     });
-  });
+  };
+
+  applyScale(mainCards, mainRatio);
+  applyScale(secondaryCards, secondaryRatio);
+  applyScale(tertiaryCards, tertiaryRatio);
 }
+
 
 // ==============================================
 // 🕒 HEADER CLOCK
