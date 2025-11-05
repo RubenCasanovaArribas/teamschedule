@@ -73,7 +73,7 @@ async function loadEvents() {
 }
 
 // ==============================================
-// 📅 ICS PARSER
+// 📅 ICS PARSER (con soporte de zona horaria Windows → IANA)
 // ==============================================
 function parseICS(text) {
   const events = [];
@@ -103,20 +103,138 @@ function matchField(block, key) {
   return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
 }
 
+// ==============================================
+// 🕒 Conversión de ICS a ISO (con soporte TZID y Windows → IANA)
+// ==============================================
 function parseICSTime(value, block = "") {
   if (!value) return null;
 
+  // Buscar TZID en la línea del bloque
+  const tzMatch = block.match(/TZID=([^:;]+)/);
+  let tzid = tzMatch ? tzMatch[1].trim() : null;
+  if (tzid) tzid = convertWindowsToIANA(tzid);
+
+  // 📅 Solo fecha (sin hora)
   if (/^\d{8}$/.test(value))
-    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T00:00:00Z`;
+    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
 
+  // 🕒 UTC explícito
   if (/^\d{8}T\d{6}Z$/.test(value))
-    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;
+    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
 
-  if (/^\d{8}T\d{6}$/.test(value))
-    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}`;
+  // 🕓 Hora local (con o sin TZID)
+  if (/^\d{8}T\d{6}$/.test(value)) {
+    const localISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+    if (tzid) {
+      try {
+        // Convertir hora local (TZID) → UTC
+        const utc = new Date(
+          new Date(localISO).toLocaleString("en-US", { timeZone: tzid })
+        ).toISOString();
+        return utc;
+      } catch (e) {
+        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local.`);
+        return localISO;
+      }
+    }
+    return localISO;
+  }
 
   return null;
 }
+
+// ==============================================
+// 🌍 Conversión de zona horaria Windows → IANA
+// ==============================================
+const WINDOWS_TZ_MAP = {
+  "Dateline Standard Time": "Etc/GMT+12",
+  "UTC-11": "Etc/GMT+11",
+  "Hawaiian Standard Time": "Pacific/Honolulu",
+  "Alaskan Standard Time": "America/Anchorage",
+  "Pacific Standard Time": "America/Los_Angeles",
+  "Mountain Standard Time": "America/Denver",
+  "US Mountain Standard Time": "America/Phoenix",
+  "Central Standard Time": "America/Chicago",
+  "Eastern Standard Time": "America/New_York",
+  "Atlantic Standard Time": "America/Halifax",
+  "SA Pacific Standard Time": "America/Bogota",
+  "Venezuela Standard Time": "America/Caracas",
+  "Paraguay Standard Time": "America/Asuncion",
+  "Argentina Standard Time": "America/Argentina/Buenos_Aires",
+  "Greenland Standard Time": "America/Godthab",
+  "E. South America Standard Time": "America/Sao_Paulo",
+  "Montevideo Standard Time": "America/Montevideo",
+  "Newfoundland Standard Time": "America/St_Johns",
+  "Bahia Standard Time": "America/Bahia",
+  "Azores Standard Time": "Atlantic/Azores",
+  "Cape Verde Standard Time": "Atlantic/Cape_Verde",
+  "Morocco Standard Time": "Africa/Casablanca",
+  "UTC": "Etc/UTC",
+  "GMT Standard Time": "Europe/London",
+  "Greenwich Standard Time": "Atlantic/Reykjavik",
+  "W. Europe Standard Time": "Europe/Berlin",
+  "Central Europe Standard Time": "Europe/Budapest",
+  "Romance Standard Time": "Europe/Paris",
+  "Central European Standard Time": "Europe/Warsaw",
+  "W. Central Africa Standard Time": "Africa/Lagos",
+  "Namibia Standard Time": "Africa/Windhoek",
+  "Jordan Standard Time": "Asia/Amman",
+  "GTB Standard Time": "Europe/Bucharest",
+  "Middle East Standard Time": "Asia/Beirut",
+  "Egypt Standard Time": "Africa/Cairo",
+  "Syria Standard Time": "Asia/Damascus",
+  "E. Europe Standard Time": "Europe/Chisinau",
+  "South Africa Standard Time": "Africa/Johannesburg",
+  "FLE Standard Time": "Europe/Kiev",
+  "Turkey Standard Time": "Europe/Istanbul",
+  "Arab Standard Time": "Asia/Riyadh",
+  "Russian Standard Time": "Europe/Moscow",
+  "E. Africa Standard Time": "Africa/Nairobi",
+  "Iran Standard Time": "Asia/Tehran",
+  "Arabian Standard Time": "Asia/Dubai",
+  "Azerbaijan Standard Time": "Asia/Baku",
+  "Mauritius Standard Time": "Indian/Mauritius",
+  "Georgian Standard Time": "Asia/Tbilisi",
+  "Caucasus Standard Time": "Asia/Yerevan",
+  "Afghanistan Standard Time": "Asia/Kabul",
+  "West Asia Standard Time": "Asia/Tashkent",
+  "Pakistan Standard Time": "Asia/Karachi",
+  "India Standard Time": "Asia/Kolkata",
+  "Sri Lanka Standard Time": "Asia/Colombo",
+  "Nepal Standard Time": "Asia/Kathmandu",
+  "Central Asia Standard Time": "Asia/Almaty",
+  "Bangladesh Standard Time": "Asia/Dhaka",
+  "Myanmar Standard Time": "Asia/Yangon",
+  "SE Asia Standard Time": "Asia/Bangkok",
+  "N. Central Asia Standard Time": "Asia/Novosibirsk",
+  "China Standard Time": "Asia/Shanghai",
+  "North Asia Standard Time": "Asia/Krasnoyarsk",
+  "Singapore Standard Time": "Asia/Singapore",
+  "W. Australia Standard Time": "Australia/Perth",
+  "Taipei Standard Time": "Asia/Taipei",
+  "Ulaanbaatar Standard Time": "Asia/Ulaanbaatar",
+  "North Asia East Standard Time": "Asia/Irkutsk",
+  "Korea Standard Time": "Asia/Seoul",
+  "Tokyo Standard Time": "Asia/Tokyo",
+  "Yakutsk Standard Time": "Asia/Yakutsk",
+  "Cen. Australia Standard Time": "Australia/Adelaide",
+  "AUS Central Standard Time": "Australia/Darwin",
+  "E. Australia Standard Time": "Australia/Brisbane",
+  "AUS Eastern Standard Time": "Australia/Sydney",
+  "West Pacific Standard Time": "Pacific/Port_Moresby",
+  "Tasmania Standard Time": "Australia/Hobart",
+  "Vladivostok Standard Time": "Asia/Vladivostok",
+  "Central Pacific Standard Time": "Pacific/Guadalcanal",
+  "New Zealand Standard Time": "Pacific/Auckland",
+  "Tonga Standard Time": "Pacific/Tongatapu",
+  "Samoa Standard Time": "Pacific/Apia",
+  "Line Islands Standard Time": "Pacific/Kiritimati"
+};
+
+function convertWindowsToIANA(tzid) {
+  return WINDOWS_TZ_MAP[tzid] || tzid;
+}
+
 
 // ==============================================
 // 🧩 CREATE EVENT CARD
@@ -303,3 +421,4 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
