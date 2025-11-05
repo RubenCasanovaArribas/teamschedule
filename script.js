@@ -73,6 +73,40 @@ async function loadEvents() {
 }
 
 // ==============================================
+// 📅 ICS PARSER COMPLETO (Windows + IANA → UTC real)
+// ==============================================
+function parseICS(text) {
+  const events = [];
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
+  const blocks = normalized.split("BEGIN:VEVENT").slice(1);
+
+  for (const block of blocks) {
+    const endBlock = block.split("END:VEVENT")[0];
+    const summary = matchField(endBlock, "SUMMARY") || "Untitled";
+    const description = matchField(endBlock, "DESCRIPTION") || "";
+    const location = matchField(endBlock, "LOCATION") || "";
+    const start = matchField(endBlock, "DTSTART");
+    const end = matchField(endBlock, "DTEND");
+
+    const startISO = parseICSTime(start, endBlock, "START");
+    const endISO = parseICSTime(end, endBlock, "END");
+
+    events.push({ title: summary, description, location, start: startISO, end: endISO });
+  }
+  return events;
+}
+
+// ==============================================
+// 🔍 Extraer campo de texto ICS
+// ==============================================
+function matchField(block, key) {
+  const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
+  const match = block.match(regex);
+  if (!match) return null;
+  return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
+}
+
+// ==============================================
 // 🕒 Robust ICS Time Parsing (Windows + IANA → UTC)
 // ==============================================
 function parseICSTime(value, block = "", label = "") {
@@ -107,6 +141,7 @@ function parseICSTime(value, block = "", label = "") {
 
     if (tzid) {
       try {
+        // Obtener offset estándar (sin DST)
         const offsetMinutes = getStandardOffsetMinutes(tzid);
         const utcTime = localTimeMs - offsetMinutes * 60 * 1000;
         const utcISO = new Date(utcTime).toISOString();
@@ -118,7 +153,7 @@ function parseICSTime(value, block = "", label = "") {
       }
     }
 
-    // Sin TZID: se asume local del navegador → convertir a UTC
+    // Sin TZID → usar zona local del navegador
     return new Date(localTimeMs).toISOString();
   }
 
@@ -130,38 +165,51 @@ function parseICSTime(value, block = "", label = "") {
 // ==============================================
 function convertWindowsToIANA(windowsTz) {
   const map = {
-    "Romance Standard Time": "Europe/Paris",
-    "W. Europe Standard Time": "Europe/Berlin",
-    "Central Europe Standard Time": "Europe/Budapest",
-    "E. Europe Standard Time": "Europe/Bucharest",
-    "GMT Standard Time": "Europe/London",
-    "GMT Daylight Time": "Europe/London",
-    "UTC": "Etc/UTC",
-    "Central European Standard Time": "Europe/Warsaw",
-    "SA Eastern Standard Time": "America/Buenos_Aires",
+    "Dateline Standard Time": "Etc/GMT+12",
+    "UTC-11": "Etc/GMT+11",
+    "Hawaiian Standard Time": "Pacific/Honolulu",
+    "Alaskan Standard Time": "America/Anchorage",
     "Pacific Standard Time": "America/Los_Angeles",
     "Pacific Standard Time (Mexico)": "America/Tijuana",
     "Mountain Standard Time": "America/Denver",
     "US Mountain Standard Time": "America/Phoenix",
     "Central Standard Time": "America/Chicago",
+    "Central America Standard Time": "America/Guatemala",
     "Eastern Standard Time": "America/New_York",
+    "SA Eastern Standard Time": "America/Buenos_Aires",
+    "Atlantic Standard Time": "America/Halifax",
+    "Greenwich Standard Time": "Atlantic/Reykjavik",
+    "UTC": "Etc/UTC",
+    "GMT Standard Time": "Europe/London",
+    "GMT Daylight Time": "Europe/London",
+    "W. Europe Standard Time": "Europe/Berlin",
+    "Romance Standard Time": "Europe/Paris",
+    "Central Europe Standard Time": "Europe/Budapest",
+    "E. Europe Standard Time": "Europe/Bucharest",
+    "Russian Standard Time": "Europe/Moscow",
+    "Turkey Standard Time": "Europe/Istanbul",
+    "Arab Standard Time": "Asia/Riyadh",
+    "Iran Standard Time": "Asia/Tehran",
+    "Arabian Standard Time": "Asia/Dubai",
+    "Pakistan Standard Time": "Asia/Karachi",
+    "India Standard Time": "Asia/Kolkata",
+    "Bangladesh Standard Time": "Asia/Dhaka",
+    "SE Asia Standard Time": "Asia/Bangkok",
     "China Standard Time": "Asia/Shanghai",
     "Tokyo Standard Time": "Asia/Tokyo",
-    "India Standard Time": "Asia/Kolkata",
-    "Arab Standard Time": "Asia/Riyadh",
     "AUS Eastern Standard Time": "Australia/Sydney",
     "New Zealand Standard Time": "Pacific/Auckland",
-    "Greenwich Standard Time": "Atlantic/Reykjavik",
-    "Russian Standard Time": "Europe/Moscow",
+    "Central European Standard Time": "Europe/Warsaw",
+    "South Africa Standard Time": "Africa/Johannesburg",
   };
   return map[windowsTz] || windowsTz; // Devuelve el mismo si ya es IANA
 }
 
 // ==============================================
-// 🧮 Obtener offset horario fijo (sin DST)
+// 🧮 Obtener offset horario estándar (sin DST)
 // ==============================================
 function getStandardOffsetMinutes(tzid) {
-  const refDate = new Date(Date.UTC(2025, 0, 1)); // referencia fija (enero = sin DST)
+  const refDate = new Date(Date.UTC(2025, 0, 1)); // referencia fija (enero, sin DST)
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: tzid,
     hour12: false,
@@ -362,6 +410,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
