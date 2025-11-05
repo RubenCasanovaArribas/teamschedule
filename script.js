@@ -109,43 +109,54 @@ function matchField(block, key) {
 function parseICSTime(value, block = "", label = "") {
   if (!value) return null;
 
-  // Buscar TZID
   const tzMatch = block.match(/TZID=([^:;]+)/);
   let tzid = tzMatch ? tzMatch[1].trim() : null;
   if (tzid) tzid = convertWindowsToIANA(tzid);
 
-  // 📅 Solo fecha
+  // Fecha sin hora
   if (/^\d{8}$/.test(value))
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
 
-  // 🕒 UTC explícito
+  // UTC explícito
   if (/^\d{8}T\d{6}Z$/.test(value))
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
 
-  // 🕓 Hora local (con o sin TZID)
+  // Hora local (con o sin TZID)
   if (/^\d{8}T\d{6}$/.test(value)) {
-    const localISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+    const naiveISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+
     if (tzid) {
       try {
-        // Convertir hora local (TZID) → UTC
-        const utc = new Date(
-          new Date(localISO).toLocaleString("en-US", { timeZone: tzid })
-        ).toISOString();
+        // ✅ Obtener offset real de la zona horaria
+        const dtf = new Intl.DateTimeFormat("en-US", {
+          timeZone: tzid,
+          hour12: false,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        });
 
-        // 🧭 Diagnóstico en consola
-        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utc}`);
+        const parts = dtf.formatToParts(new Date(naiveISO));
+        const values = Object.fromEntries(parts.map(p => [p.type, p.value]));
 
-        return utc;
+        // Reconstruir fecha con desplazamiento
+        const utcString = `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}Z`;
+        const utcDate = new Date(utcString);
+
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utcDate.toISOString()}`);
+        return utcDate.toISOString();
       } catch (e) {
         console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
-        return localISO;
+        return naiveISO;
       }
     }
-    return localISO;
+
+    // Sin TZID: tratar como local del navegador
+    return new Date(naiveISO).toISOString();
   }
 
   return null;
 }
+
 
 // ==============================================
 // 🌍 Conversión Windows TZ → IANA
@@ -426,5 +437,6 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
