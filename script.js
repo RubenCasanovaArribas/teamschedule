@@ -73,119 +73,67 @@ async function loadEvents() {
 }
 
 // ==============================================
-// 📅 ICS PARSER con soporte extendido de TZID (Windows + IANA)
+// 🕒 Parse ICS time → UTC (sin DST, multiplataforma)
 // ==============================================
-function parseICS(text) {
-  const events = [];
-  let tzUnknown = new Set();
-
-  const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
-  const blocks = normalized.split("BEGIN:VEVENT").slice(1);
-
-  for (const block of blocks) {
-    const endBlock = block.split("END:VEVENT")[0];
-    const summary = matchField(endBlock, "SUMMARY") || "Untitled";
-    const description = matchField(endBlock, "DESCRIPTION") || "";
-    const location = matchField(endBlock, "LOCATION") || "";
-    const start = matchField(endBlock, "DTSTART");
-    const end = matchField(endBlock, "DTEND");
-
-    const startISO = parseICSTime(start, endBlock, "START", tzUnknown);
-    const endISO = parseICSTime(end, endBlock, "END", tzUnknown);
-
-    events.push({ title: summary, description, location, start: startISO, end: endISO });
-  }
-
-  console.log(`✅ ICS parsing completado: ${events.length} eventos`);
-  if (tzUnknown.size > 0) {
-    console.warn(`⚠️ TZID no reconocidos (${tzUnknown.size}):`, Array.from(tzUnknown).join(", "));
-  }
-
-  return events;
-}
-
-function matchField(block, key) {
-  const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
-  const match = block.match(regex);
-  if (!match) return null;
-  return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
-}
-
-// ==============================================
-// 🕒 Conversión de hora ICS → UTC real
-// ==============================================
-function parseICSTime(value, block = "", label = "", tzUnknownSet = null) {
+function parseICSTime(value, block = "", label = "") {
   if (!value) return null;
 
+  // 1️⃣ Detectar TZID (IANA o Windows)
   const tzMatch = block.match(/TZID=([^:;]+)/);
   let tzid = tzMatch ? tzMatch[1].trim() : null;
-  if (tzid) tzid = convertWindowsToIANA(tzid, tzUnknownSet);
+  if (tzid) tzid = convertWindowsToIANA(tzid);
 
-  // Solo fecha (sin hora)
-  if (/^\d{8}$/.test(value))
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
+  // 2️⃣ Solo fecha sin hora → medianoche UTC
+  if (/^\d{8}$/.test(value)) {
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T00:00:00Z`;
+  }
 
-  // UTC explícito
-  if (/^\d{8}T\d{6}Z$/.test(value))
-    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
+  // 3️⃣ Fecha con hora en UTC explícita
+  if (/^\d{8}T\d{6}Z$/.test(value)) {
+    return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;
+  }
 
-  // Hora local
+  // 4️⃣ Fecha local (con o sin TZID)
   if (/^\d{8}T\d{6}$/.test(value)) {
-    const naiveISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+    const localISO = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}`;
 
+    // Si hay TZID → convertir a UTC fijo usando offset estándar (sin DST)
     if (tzid) {
       try {
-        const dt = new Date(naiveISO);
-        const dtf = new Intl.DateTimeFormat("en-US", {
-          timeZone: tzid,
-          hour12: false,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        });
+        const date = new Date(localISO);
 
-        const parts = dtf.formatToParts(dt);
-        const values = Object.fromEntries(parts.map(p => [p.type, p.value]));
+        // Obtener offset fijo en minutos SIN considerar horario de verano
+        const offsetMinutes = getStandardOffsetMinutes(tzid);
+        const utcTime = date.getTime() - offsetMinutes * 60 * 1000;
 
-        const localInTz = Date.UTC(
-          parseInt(values.year),
-          parseInt(values.month) - 1,
-          parseInt(values.day),
-          parseInt(values.hour),
-          parseInt(values.minute),
-          parseInt(values.second)
-        );
-
-        const utcDate = new Date(localInTz);
-        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utcDate.toISOString()}`);
-        return utcDate.toISOString();
+        const utcISO = new Date(utcTime).toISOString();
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utcISO}`);
+        return utcISO;
       } catch (e) {
-        console.warn(`⚠️ Error interpretando TZID '${tzid}', usando hora local (${label}).`);
-        return new Date(naiveISO).toISOString();
+        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
+        return new Date(localISO + "Z").toISOString();
       }
     }
 
-    // Sin TZID → tratar como hora local del sistema
-    return new Date(naiveISO).toISOString();
+    // Sin TZID → tratar como hora local del navegador, convertir a UTC
+    return new Date(localISO).toISOString();
   }
 
   return null;
 }
 
 // ==============================================
-// 🧭 Conversión Windows → IANA (extensa + DST)
+// 🧭 Convierte zonas Windows → IANA
 // ==============================================
-function convertWindowsToIANA(windowsTz, tzUnknownSet = null) {
+function convertWindowsToIANA(tzid) {
   const map = {
     // 🌍 Europa
-    "Romance Standard Time": "Europe/Paris",
-    "Central Europe Standard Time": "Europe/Budapest",
-    "W. Europe Standard Time": "Europe/Berlin",
     "GMT Standard Time": "Europe/London",
     "Greenwich Standard Time": "Atlantic/Reykjavik",
+    "W. Europe Standard Time": "Europe/Berlin",
+    "Romance Standard Time": "Europe/Paris",
+    "Central Europe Standard Time": "Europe/Prague",
+    "Central European Standard Time": "Europe/Warsaw",
     "E. Europe Standard Time": "Europe/Bucharest",
     "FLE Standard Time": "Europe/Helsinki",
     "GTB Standard Time": "Europe/Athens",
@@ -193,74 +141,118 @@ function convertWindowsToIANA(windowsTz, tzUnknownSet = null) {
     "Turkey Standard Time": "Europe/Istanbul",
     "Israel Standard Time": "Asia/Jerusalem",
     "Arab Standard Time": "Asia/Riyadh",
-    "Morocco Standard Time": "Africa/Casablanca",
+    "Arabian Standard Time": "Asia/Dubai",
     "South Africa Standard Time": "Africa/Johannesburg",
+    "Morocco Standard Time": "Africa/Casablanca",
+    "Egypt Standard Time": "Africa/Cairo",
+    "Namibia Standard Time": "Africa/Windhoek",
 
-    // 🌎 América
-    "Eastern Standard Time": "America/New_York",
-    "Central Standard Time": "America/Chicago",
+    // 🇺🇸 América
     "Pacific Standard Time": "America/Los_Angeles",
+    "US Mountain Standard Time": "America/Phoenix",
     "Mountain Standard Time": "America/Denver",
+    "Central Standard Time": "America/Chicago",
+    "Eastern Standard Time": "America/New_York",
     "Atlantic Standard Time": "America/Halifax",
-    "SA Eastern Standard Time": "America/Buenos_Aires",
-    "Greenland Standard Time": "America/Godthab",
-    "Central America Standard Time": "America/Guatemala",
     "SA Pacific Standard Time": "America/Bogota",
+    "Argentina Standard Time": "America/Argentina/Buenos_Aires",
+    "E. South America Standard Time": "America/Sao_Paulo",
+    "Greenland Standard Time": "America/Godthab",
+    "Newfoundland Standard Time": "America/St_Johns",
+
+    // 🇨🇦 Canadá
+    "Canada Central Standard Time": "America/Regina",
+    "Atlantic Standard Time (Canada)": "America/Halifax",
+
+    // 🇲🇽 México y Centroamérica
+    "Central America Standard Time": "America/Guatemala",
+    "Mexico Standard Time": "America/Mexico_City",
+    "Mountain Standard Time (Mexico)": "America/Chihuahua",
+    "Pacific Standard Time (Mexico)": "America/Tijuana",
+
+    // 🇦🇸 América del Sur
     "Venezuela Standard Time": "America/Caracas",
     "Paraguay Standard Time": "America/Asuncion",
-    "SA Western Standard Time": "America/La_Paz",
-    "Pacific SA Standard Time": "America/Santiago",
+    "SA Eastern Standard Time": "America/Cayenne",
+    "Uruguay Standard Time": "America/Montevideo",
 
     // 🌏 Asia y Oceanía
+    "West Asia Standard Time": "Asia/Tashkent",
+    "Pakistan Standard Time": "Asia/Karachi",
     "India Standard Time": "Asia/Kolkata",
+    "Nepal Standard Time": "Asia/Kathmandu",
+    "Bangladesh Standard Time": "Asia/Dhaka",
+    "Myanmar Standard Time": "Asia/Yangon",
+    "SE Asia Standard Time": "Asia/Bangkok",
     "China Standard Time": "Asia/Shanghai",
     "Singapore Standard Time": "Asia/Singapore",
-    "Malay Peninsula Standard Time": "Asia/Kuala_Lumpur",
     "Taipei Standard Time": "Asia/Taipei",
     "Tokyo Standard Time": "Asia/Tokyo",
     "Korea Standard Time": "Asia/Seoul",
-    "Myanmar Standard Time": "Asia/Yangon",
-    "SE Asia Standard Time": "Asia/Bangkok",
+    "AUS Central Standard Time": "Australia/Adelaide",
     "AUS Eastern Standard Time": "Australia/Sydney",
-    "AUS Central Standard Time": "Australia/Darwin",
-    "W. Australia Standard Time": "Australia/Perth",
-    "New Zealand Standard Time": "Pacific/Auckland",
+    "E. Australia Standard Time": "Australia/Brisbane",
+    "West Pacific Standard Time": "Pacific/Port_Moresby",
     "Central Pacific Standard Time": "Pacific/Guadalcanal",
-    "Samoa Standard Time": "Pacific/Apia",
+    "New Zealand Standard Time": "Pacific/Auckland",
     "Tonga Standard Time": "Pacific/Tongatapu",
-    "Hawaiian Standard Time": "Pacific/Honolulu",
-    "Alaskan Standard Time": "America/Anchorage",
+    "Fiji Standard Time": "Pacific/Fiji",
 
-    // 🕰️ UTC offsets
+    // 🧊 Ártico / Islas
+    "Azores Standard Time": "Atlantic/Azores",
+    "Cape Verde Standard Time": "Atlantic/Cape_Verde",
     "UTC": "Etc/UTC",
     "UTC+12": "Etc/GMT-12",
     "UTC+11": "Etc/GMT-11",
     "UTC+10": "Etc/GMT-10",
-    "UTC+9": "Etc/GMT-9",
-    "UTC+8": "Etc/GMT-8",
-    "UTC+7": "Etc/GMT-7",
-    "UTC+6": "Etc/GMT-6",
-    "UTC+5": "Etc/GMT-5",
-    "UTC+4": "Etc/GMT-4",
-    "UTC+3": "Etc/GMT-3",
-    "UTC+2": "Etc/GMT-2",
-    "UTC+1": "Etc/GMT-1",
-    "UTC-1": "Etc/GMT+1",
-    "UTC-2": "Etc/GMT+2",
-    "UTC-3": "Etc/GMT+3",
-    "UTC-4": "Etc/GMT+4",
-    "UTC-5": "Etc/GMT+5",
-    "UTC-6": "Etc/GMT+6",
-    "UTC-7": "Etc/GMT+7",
-    "UTC-8": "Etc/GMT+8",
-    "UTC-9": "Etc/GMT+9",
-    "UTC-10": "Etc/GMT+10"
+    "UTC+09": "Etc/GMT-9",
+    "UTC+08": "Etc/GMT-8",
+    "UTC+07": "Etc/GMT-7",
+    "UTC+06": "Etc/GMT-6",
+    "UTC+05": "Etc/GMT-5",
+    "UTC+04": "Etc/GMT-4",
+    "UTC+03": "Etc/GMT-3",
+    "UTC+02": "Etc/GMT-2",
+    "UTC+01": "Etc/GMT-1",
+    "UTC-01": "Etc/GMT+1",
+    "UTC-02": "Etc/GMT+2",
+    "UTC-03": "Etc/GMT+3",
+    "UTC-04": "Etc/GMT+4",
+    "UTC-05": "Etc/GMT+5",
+    "UTC-06": "Etc/GMT+6",
+    "UTC-07": "Etc/GMT+7",
+    "UTC-08": "Etc/GMT+8",
+    "UTC-09": "Etc/GMT+9",
+    "UTC-10": "Etc/GMT+10",
+    "UTC-11": "Etc/GMT+11"
   };
 
-  const iana = map[windowsTz];
-  if (!iana && tzUnknownSet) tzUnknownSet.add(windowsTz);
-  return iana || windowsTz;
+  return map[tzid] || tzid;
 }
+
+// ==============================================
+// ⏳ Calcula offset estándar (sin DST)
+// ==============================================
+function getStandardOffsetMinutes(tzid) {
+  // Tomamos una fecha en enero (invierno) para evitar horario de verano
+  const jan = new Date(Date.UTC(2025, 0, 1, 0, 0, 0));
+  const janLocale = new Intl.DateTimeFormat("en-US", {
+    timeZone: tzid,
+    hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  }).formatToParts(jan);
+
+  const parts = Object.fromEntries(janLocale.map(p => [p.type, p.value]));
+  const localTime = Date.UTC(
+    parseInt(parts.year), parseInt(parts.month) - 1, parseInt(parts.day),
+    parseInt(parts.hour), parseInt(parts.minute), parseInt(parts.second)
+  );
+
+  const diffMs = localTime - jan.getTime();
+  return diffMs / (60 * 1000); // offset en minutos
+}
+
 
 
 // ==============================================
@@ -448,6 +440,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
