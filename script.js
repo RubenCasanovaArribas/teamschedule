@@ -73,7 +73,7 @@ async function loadEvents() {
 }
 
 // ==============================================
-// 📅 ICS PARSER (con soporte de zona horaria Windows → IANA)
+// 📅 ICS PARSER (con soporte TZID + conversión Windows → IANA + diagnóstico)
 // ==============================================
 function parseICS(text) {
   const events = [];
@@ -88,8 +88,8 @@ function parseICS(text) {
     const start = matchField(endBlock, "DTSTART");
     const end = matchField(endBlock, "DTEND");
 
-    const startISO = parseICSTime(start, endBlock);
-    const endISO = parseICSTime(end, endBlock);
+    const startISO = parseICSTime(start, endBlock, "START");
+    const endISO = parseICSTime(end, endBlock, "END");
 
     events.push({ title: summary, description, location, start: startISO, end: endISO });
   }
@@ -104,17 +104,17 @@ function matchField(block, key) {
 }
 
 // ==============================================
-// 🕒 Conversión de ICS a ISO (con soporte TZID y Windows → IANA)
+// 🕒 Conversión ICS → ISO (con soporte TZID y Windows → IANA)
 // ==============================================
-function parseICSTime(value, block = "") {
+function parseICSTime(value, block = "", label = "") {
   if (!value) return null;
 
-  // Buscar TZID en la línea del bloque
+  // Buscar TZID
   const tzMatch = block.match(/TZID=([^:;]+)/);
   let tzid = tzMatch ? tzMatch[1].trim() : null;
   if (tzid) tzid = convertWindowsToIANA(tzid);
 
-  // 📅 Solo fecha (sin hora)
+  // 📅 Solo fecha
   if (/^\d{8}$/.test(value))
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
 
@@ -131,9 +131,13 @@ function parseICSTime(value, block = "") {
         const utc = new Date(
           new Date(localISO).toLocaleString("en-US", { timeZone: tzid })
         ).toISOString();
+
+        // 🧭 Diagnóstico en consola
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utc}`);
+
         return utc;
       } catch (e) {
-        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local.`);
+        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
         return localISO;
       }
     }
@@ -144,7 +148,7 @@ function parseICSTime(value, block = "") {
 }
 
 // ==============================================
-// 🌍 Conversión de zona horaria Windows → IANA
+// 🌍 Conversión Windows TZ → IANA
 // ==============================================
 const WINDOWS_TZ_MAP = {
   "Dateline Standard Time": "Etc/GMT+12",
@@ -234,6 +238,7 @@ const WINDOWS_TZ_MAP = {
 function convertWindowsToIANA(tzid) {
   return WINDOWS_TZ_MAP[tzid] || tzid;
 }
+
 
 
 // ==============================================
@@ -421,4 +426,5 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
