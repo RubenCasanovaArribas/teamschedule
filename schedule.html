@@ -269,43 +269,201 @@
     }
   }
 
-  // ---------- ICS PARSER ----------
-  function parseICS(text) {
-    const events = [];
-    const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
-    const blocks = normalized.split("BEGIN:VEVENT").slice(1);
+  // ==============================================
+// 📅 ICS PARSER v1 (con soporte TZID + Windows → IANA + conversión UTC real sin DST)
+// ==============================================
+function parseICS(text) {
+  const events = [];
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\n /g, "");
+  const blocks = normalized.split("BEGIN:VEVENT").slice(1);
 
-    for (const block of blocks) {
-      const endBlock = block.split("END:VEVENT")[0];
-      const summary = matchField(endBlock, "SUMMARY") || "Untitled";
-      const description = matchField(endBlock, "DESCRIPTION") || "";
-      const location = matchField(endBlock, "LOCATION") || "";
-      const start = matchField(endBlock, "DTSTART");
-      const end = matchField(endBlock, "DTEND");
-      const startISO = parseICSTime(start, endBlock);
-      const endISO = parseICSTime(end, endBlock);
-      events.push({ title: summary, description, location, start: startISO, end: endISO });
+  for (const block of blocks) {
+    const endBlock = block.split("END:VEVENT")[0];
+    const summary = matchField(endBlock, "SUMMARY") || "Untitled";
+    const description = matchField(endBlock, "DESCRIPTION") || "";
+    const location = matchField(endBlock, "LOCATION") || "";
+    const start = matchField(endBlock, "DTSTART");
+    const end = matchField(endBlock, "DTEND");
+
+    const startISO = parseICSTime(start, endBlock, "START");
+    const endISO = parseICSTime(end, endBlock, "END");
+
+    events.push({ title: summary, description, location, start: startISO, end: endISO });
+  }
+  return events;
+}
+
+// ==============================================
+// 🔍 Extrae campos ICS
+// ==============================================
+function matchField(block, key) {
+  const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
+  const match = block.match(regex);
+  if (!match) return null;
+  return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
+}
+
+// ==============================================
+// 🕒 Conversión ICS → ISO (sin DST, siempre UTC real)
+// ==============================================
+function parseICSTime(value, block = "", label = "") {
+  if (!value) return null;
+
+  // Detectar zona horaria (TZID)
+  const tzMatch = block.match(/TZID=([^:;]+)/);
+  let tzid = tzMatch ? tzMatch[1].trim() : null;
+  if (tzid) tzid = convertWindowsToIANA(tzid);
+
+  // 📅 Fecha sin hora
+  if (/^\d{8}$/.test(value)) {
+    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
+  }
+
+  // 🕘 Hora UTC explícita
+  if (/^\d{8}T\d{6}Z$/.test(value)) {
+    return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
+  }
+
+  // 🕒 Hora local (con o sin TZID)
+  if (/^\d{8}T\d{6}$/.test(value)) {
+    const year = +value.slice(0,4);
+    const month = +value.slice(4,6) - 1;
+    const day = +value.slice(6,8);
+    const hour = +value.slice(9,11);
+    const minute = +value.slice(11,13);
+    const second = +value.slice(13,15);
+
+    let baseMs = Date.UTC(year, month, day, hour, minute, second);
+
+    if (tzid) {
+      try {
+        const offsetMinutes = getStandardOffsetMinutes(tzid);
+        const utcMs = baseMs - offsetMinutes * 60 * 1000;
+        const utcISO = new Date(utcMs).toISOString();
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} | Offset: ${offsetMinutes} min → UTC: ${utcISO}`);
+        return utcISO;
+      } catch (e) {
+        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
+        return new Date(baseMs).toISOString();
+      }
     }
-    return events;
+
+    return new Date(baseMs).toISOString();
   }
 
-  function matchField(block, key) {
-    const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
-    const match = block.match(regex);
-    if (!match) return null;
-    return match[1].trim().replace(/\\n/g, "\n").replace(/\\\\/g, "\\");
-  }
+  return null;
+}
 
-  function parseICSTime(value, block = "") {
-    if (!value) return null;
-    if (/^\d{8}$/.test(value))
-      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
-    if (/^\d{8}T\d{6}Z$/.test(value))
-      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
-    if (/^\d{8}T\d{6}$/.test(value))
-      return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
-    return null;
-  }
+// ==============================================
+// 🧮 Obtiene offset estándar (sin DST)
+// ==============================================
+function getStandardOffsetMinutes(tzid) {
+  const refDate = new Date(Date.UTC(2025, 0, 1)); // enero, sin horario de verano
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tzid,
+    hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+  const parts = dtf.formatToParts(refDate);
+  const vals = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  const local = Date.UTC(vals.year, vals.month - 1, vals.day, vals.hour, vals.minute, vals.second);
+  const diffMinutes = (local - refDate.getTime()) / 60000;
+  return diffMinutes;
+}
+
+// ==============================================
+// 🌍 Conversión Windows TZ → IANA
+// ==============================================
+const WINDOWS_TZ_MAP = {
+  "Dateline Standard Time": "Etc/GMT+12",
+  "UTC-11": "Etc/GMT+11",
+  "Hawaiian Standard Time": "Pacific/Honolulu",
+  "Alaskan Standard Time": "America/Anchorage",
+  "Pacific Standard Time": "America/Los_Angeles",
+  "Mountain Standard Time": "America/Denver",
+  "US Mountain Standard Time": "America/Phoenix",
+  "Central Standard Time": "America/Chicago",
+  "Eastern Standard Time": "America/New_York",
+  "Atlantic Standard Time": "America/Halifax",
+  "SA Pacific Standard Time": "America/Bogota",
+  "Venezuela Standard Time": "America/Caracas",
+  "Paraguay Standard Time": "America/Asuncion",
+  "Argentina Standard Time": "America/Argentina/Buenos_Aires",
+  "Greenland Standard Time": "America/Godthab",
+  "E. South America Standard Time": "America/Sao_Paulo",
+  "Montevideo Standard Time": "America/Montevideo",
+  "Newfoundland Standard Time": "America/St_Johns",
+  "Bahia Standard Time": "America/Bahia",
+  "Azores Standard Time": "Atlantic/Azores",
+  "Cape Verde Standard Time": "Atlantic/Cape_Verde",
+  "Morocco Standard Time": "Africa/Casablanca",
+  "UTC": "Etc/UTC",
+  "GMT Standard Time": "Europe/London",
+  "Greenwich Standard Time": "Atlantic/Reykjavik",
+  "W. Europe Standard Time": "Europe/Berlin",
+  "Central Europe Standard Time": "Europe/Budapest",
+  "Romance Standard Time": "Europe/Paris",
+  "Central European Standard Time": "Europe/Warsaw",
+  "W. Central Africa Standard Time": "Africa/Lagos",
+  "Namibia Standard Time": "Africa/Windhoek",
+  "Jordan Standard Time": "Asia/Amman",
+  "GTB Standard Time": "Europe/Bucharest",
+  "Middle East Standard Time": "Asia/Beirut",
+  "Egypt Standard Time": "Africa/Cairo",
+  "Syria Standard Time": "Asia/Damascus",
+  "E. Europe Standard Time": "Europe/Chisinau",
+  "South Africa Standard Time": "Africa/Johannesburg",
+  "FLE Standard Time": "Europe/Kiev",
+  "Turkey Standard Time": "Europe/Istanbul",
+  "Arab Standard Time": "Asia/Riyadh",
+  "Russian Standard Time": "Europe/Moscow",
+  "E. Africa Standard Time": "Africa/Nairobi",
+  "Iran Standard Time": "Asia/Tehran",
+  "Arabian Standard Time": "Asia/Dubai",
+  "Azerbaijan Standard Time": "Asia/Baku",
+  "Mauritius Standard Time": "Indian/Mauritius",
+  "Georgian Standard Time": "Asia/Tbilisi",
+  "Caucasus Standard Time": "Asia/Yerevan",
+  "Afghanistan Standard Time": "Asia/Kabul",
+  "West Asia Standard Time": "Asia/Tashkent",
+  "Pakistan Standard Time": "Asia/Karachi",
+  "India Standard Time": "Asia/Kolkata",
+  "Sri Lanka Standard Time": "Asia/Colombo",
+  "Nepal Standard Time": "Asia/Kathmandu",
+  "Central Asia Standard Time": "Asia/Almaty",
+  "Bangladesh Standard Time": "Asia/Dhaka",
+  "Myanmar Standard Time": "Asia/Yangon",
+  "SE Asia Standard Time": "Asia/Bangkok",
+  "N. Central Asia Standard Time": "Asia/Novosibirsk",
+  "China Standard Time": "Asia/Shanghai",
+  "North Asia Standard Time": "Asia/Krasnoyarsk",
+  "Singapore Standard Time": "Asia/Singapore",
+  "W. Australia Standard Time": "Australia/Perth",
+  "Taipei Standard Time": "Asia/Taipei",
+  "Ulaanbaatar Standard Time": "Asia/Ulaanbaatar",
+  "North Asia East Standard Time": "Asia/Irkutsk",
+  "Korea Standard Time": "Asia/Seoul",
+  "Tokyo Standard Time": "Asia/Tokyo",
+  "Yakutsk Standard Time": "Asia/Yakutsk",
+  "Cen. Australia Standard Time": "Australia/Adelaide",
+  "AUS Central Standard Time": "Australia/Darwin",
+  "E. Australia Standard Time": "Australia/Brisbane",
+  "AUS Eastern Standard Time": "Australia/Sydney",
+  "West Pacific Standard Time": "Pacific/Port_Moresby",
+  "Tasmania Standard Time": "Australia/Hobart",
+  "Vladivostok Standard Time": "Asia/Vladivostok",
+  "Central Pacific Standard Time": "Pacific/Guadalcanal",
+  "New Zealand Standard Time": "Pacific/Auckland",
+  "Tonga Standard Time": "Pacific/Tongatapu",
+  "Samoa Standard Time": "Pacific/Apia",
+  "Line Islands Standard Time": "Pacific/Kiritimati"
+};
+
+function convertWindowsToIANA(tzid) {
+  return WINDOWS_TZ_MAP[tzid] || tzid;
+}
+
 
   // ---------- RENDER ----------
   function renderEventsByDay(events, container) {
@@ -475,3 +633,4 @@
 
 </body>
 </html>
+
