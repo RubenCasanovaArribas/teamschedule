@@ -360,7 +360,16 @@ function formatTimeSpan(ms) {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   const s = Math.floor((ms % 60000) / 1000);
-  return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+
+  if(h>=1) {
+    return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+  if(h<1 && m>=1) {
+    return `${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+  if(m<1) {
+    return `${String(s).padStart(2, "0")}s`;
+    }
 }
 
 function formatTime(dtStr) {
@@ -459,6 +468,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
