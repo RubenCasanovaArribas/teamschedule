@@ -3,7 +3,7 @@
 // ==============================================
 const SHOW_LOCATION = true;       // Mostrar ubicación si existe
 const SHOW_DESCRIPTION = true;    // Mostrar descripción si existe
-const MAIN_EVENTS_TO_SHOW = 4;
+const MAIN_EVENTS_TO_SHOW = 3;
 const SECONDARY_EVENTS_TO_SHOW = 4;
 const HEIGHT_RATIO = 0.92;
 const GAP_CARD_RATIO = 0.2;
@@ -468,6 +468,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
