@@ -73,7 +73,7 @@ async function loadEvents() {
 }
 
 // ==============================================
-// 📅 ICS PARSER (con soporte TZID + conversión Windows → IANA + diagnóstico)
+// 📅 ICS PARSER (con soporte TZID + Windows → IANA + conversión UTC real sin DST)
 // ==============================================
 function parseICS(text) {
   const events = [];
@@ -96,6 +96,9 @@ function parseICS(text) {
   return events;
 }
 
+// ==============================================
+// 🔍 Extrae campos ICS
+// ==============================================
 function matchField(block, key) {
   const regex = new RegExp(`${key}(?:;[^:]+)?:([^\n\r]+)`);
   const match = block.match(regex);
@@ -104,59 +107,77 @@ function matchField(block, key) {
 }
 
 // ==============================================
-// 🕒 Conversión ICS → ISO (con soporte TZID y Windows → IANA)
+// 🕒 Conversión ICS → ISO (sin DST, siempre UTC real)
 // ==============================================
 function parseICSTime(value, block = "", label = "") {
   if (!value) return null;
 
+  // Detectar zona horaria (TZID)
   const tzMatch = block.match(/TZID=([^:;]+)/);
   let tzid = tzMatch ? tzMatch[1].trim() : null;
   if (tzid) tzid = convertWindowsToIANA(tzid);
 
-  // Fecha sin hora
-  if (/^\d{8}$/.test(value))
+  // 📅 Fecha sin hora
+  if (/^\d{8}$/.test(value)) {
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
+  }
 
-  // UTC explícito
-  if (/^\d{8}T\d{6}Z$/.test(value))
+  // 🕘 Hora UTC explícita
+  if (/^\d{8}T\d{6}Z$/.test(value)) {
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
+  }
 
-  // Hora local (con o sin TZID)
+  // 🕒 Hora local (con o sin TZID)
   if (/^\d{8}T\d{6}$/.test(value)) {
-    const naiveISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+    const year = +value.slice(0,4);
+    const month = +value.slice(4,6) - 1;
+    const day = +value.slice(6,8);
+    const hour = +value.slice(9,11);
+    const minute = +value.slice(11,13);
+    const second = +value.slice(13,15);
+
+    // Crear una fecha base (en milisegundos)
+    let baseMs = Date.UTC(year, month, day, hour, minute, second);
 
     if (tzid) {
       try {
-        // ✅ Obtener offset real de la zona horaria
-        const dtf = new Intl.DateTimeFormat("en-US", {
-          timeZone: tzid,
-          hour12: false,
-          year: "numeric", month: "2-digit", day: "2-digit",
-          hour: "2-digit", minute: "2-digit", second: "2-digit"
-        });
+        // Obtener offset estándar de esa zona (sin DST)
+        const offsetMinutes = getStandardOffsetMinutes(tzid);
+        const utcMs = baseMs - offsetMinutes * 60 * 1000;
+        const utcISO = new Date(utcMs).toISOString();
 
-        const parts = dtf.formatToParts(new Date(naiveISO));
-        const values = Object.fromEntries(parts.map(p => [p.type, p.value]));
-
-        // Reconstruir fecha con desplazamiento
-        const utcString = `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}Z`;
-        const utcDate = new Date(utcString);
-
-        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utcDate.toISOString()}`);
-        return utcDate.toISOString();
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} | Offset: ${offsetMinutes} min → UTC: ${utcISO}`);
+        return utcISO;
       } catch (e) {
         console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
-        return naiveISO;
+        return new Date(baseMs).toISOString();
       }
     }
 
-    // Sin TZID: tratar como local del navegador
-    return new Date(naiveISO).toISOString();
+    // Sin TZID → tratar como hora local del navegador
+    return new Date(baseMs).toISOString();
   }
 
   return null;
 }
 
+// ==============================================
+// 🧮 Obtiene offset estándar (sin DST)
+// ==============================================
+function getStandardOffsetMinutes(tzid) {
+  const refDate = new Date(Date.UTC(2025, 0, 1)); // enero, sin horario de verano
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tzid,
+    hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+  const parts = dtf.formatToParts(refDate);
+  const vals = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  const local = Date.UTC(vals.year, vals.month - 1, vals.day, vals.hour, vals.minute, vals.second);
+  const diffMinutes = (local - refDate.getTime()) / 60000;
+  return diffMinutes;
+}
 
 // ==============================================
 // 🌍 Conversión Windows TZ → IANA
@@ -438,6 +459,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
