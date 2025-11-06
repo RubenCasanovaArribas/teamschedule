@@ -367,7 +367,7 @@ function formatTimeSpan(ms) {
   if(h<1 && m>=1) {
     return `${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
     }
-  if(m<1) {
+  if(h<1 && m<1) {
     return `${String(s).padStart(2, "0")}s`;
     }
 }
@@ -468,6 +468,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
