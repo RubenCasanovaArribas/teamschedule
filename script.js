@@ -321,7 +321,7 @@ function updateCountdown(ev, card) {
     label.textContent = "Starts in:";
 
     if (diff >= 24 * 3600000) {
-      const days = Math.ceil(diff / (24 * 3600000));
+      const days = Math.floor(diff / (24 * 3600000));
       timeEl.textContent = days + (days === 1 ? " day" : " days");
     } else {
       timeEl.textContent = formatTimeSpan(diff);
@@ -340,7 +340,7 @@ function updateCountdown(ev, card) {
     label.textContent = "Ends in:";
 
     if (diff >= 24 * 3600000) {
-      const days = Math.ceil(diff / (24 * 3600000));
+      const days = Math.floor(diff / (24 * 3600000));
       timeEl.textContent = days + (days === 1 ? " day" : " days");
     } else {
       timeEl.textContent = formatTimeSpan(diff);
@@ -459,6 +459,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
