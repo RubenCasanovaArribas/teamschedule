@@ -73,7 +73,7 @@ async function loadEvents() {
 }
 
 // ==============================================
-// 📅 ICS PARSER (con soporte de zona horaria Windows → IANA)
+// 📅 ICS PARSER (con soporte TZID + conversión Windows → IANA + diagnóstico)
 // ==============================================
 function parseICS(text) {
   const events = [];
@@ -88,8 +88,8 @@ function parseICS(text) {
     const start = matchField(endBlock, "DTSTART");
     const end = matchField(endBlock, "DTEND");
 
-    const startISO = parseICSTime(start, endBlock);
-    const endISO = parseICSTime(end, endBlock);
+    const startISO = parseICSTime(start, endBlock, "START");
+    const endISO = parseICSTime(end, endBlock, "END");
 
     events.push({ title: summary, description, location, start: startISO, end: endISO });
   }
@@ -104,47 +104,62 @@ function matchField(block, key) {
 }
 
 // ==============================================
-// 🕒 Conversión de ICS a ISO (con soporte TZID y Windows → IANA)
+// 🕒 Conversión ICS → ISO (con soporte TZID y Windows → IANA)
 // ==============================================
-function parseICSTime(value, block = "") {
+function parseICSTime(value, block = "", label = "") {
   if (!value) return null;
 
-  // Buscar TZID en la línea del bloque
   const tzMatch = block.match(/TZID=([^:;]+)/);
   let tzid = tzMatch ? tzMatch[1].trim() : null;
   if (tzid) tzid = convertWindowsToIANA(tzid);
 
-  // 📅 Solo fecha (sin hora)
+  // Fecha sin hora
   if (/^\d{8}$/.test(value))
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T00:00:00Z`;
 
-  // 🕒 UTC explícito
+  // UTC explícito
   if (/^\d{8}T\d{6}Z$/.test(value))
     return `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}Z`;
 
-  // 🕓 Hora local (con o sin TZID)
+  // Hora local (con o sin TZID)
   if (/^\d{8}T\d{6}$/.test(value)) {
-    const localISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+    const naiveISO = `${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(9,11)}:${value.slice(11,13)}:${value.slice(13,15)}`;
+
     if (tzid) {
       try {
-        // Convertir hora local (TZID) → UTC
-        const utc = new Date(
-          new Date(localISO).toLocaleString("en-US", { timeZone: tzid })
-        ).toISOString();
-        return utc;
+        // ✅ Obtener offset real de la zona horaria
+        const dtf = new Intl.DateTimeFormat("en-US", {
+          timeZone: tzid,
+          hour12: false,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        });
+
+        const parts = dtf.formatToParts(new Date(naiveISO));
+        const values = Object.fromEntries(parts.map(p => [p.type, p.value]));
+
+        // Reconstruir fecha con desplazamiento
+        const utcString = `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}Z`;
+        const utcDate = new Date(utcString);
+
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} → UTC: ${utcDate.toISOString()}`);
+        return utcDate.toISOString();
       } catch (e) {
-        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local.`);
-        return localISO;
+        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
+        return naiveISO;
       }
     }
-    return localISO;
+
+    // Sin TZID: tratar como local del navegador
+    return new Date(naiveISO).toISOString();
   }
 
   return null;
 }
 
+
 // ==============================================
-// 🌍 Conversión de zona horaria Windows → IANA
+// 🌍 Conversión Windows TZ → IANA
 // ==============================================
 const WINDOWS_TZ_MAP = {
   "Dateline Standard Time": "Etc/GMT+12",
@@ -234,6 +249,7 @@ const WINDOWS_TZ_MAP = {
 function convertWindowsToIANA(tzid) {
   return WINDOWS_TZ_MAP[tzid] || tzid;
 }
+
 
 
 
@@ -422,6 +438,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 5 * 60 * 1000);
+
 
 
 
