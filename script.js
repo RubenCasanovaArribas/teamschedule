@@ -467,7 +467,8 @@ loadEvents();
 setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
-}, 5 * 60 * 1000);
+}, 1 * 60 * 1000);
+
 
 
 
