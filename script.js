@@ -68,7 +68,10 @@ async function loadEvents() {
     };
 
     renderCategory(mainEvents, mainContainer, MAIN_EVENTS_TO_SHOW, "main");
+
+    secondaryEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
     renderCategory(secondaryEvents, secondaryContainer, SECONDARY_EVENTS_TO_SHOW, "secondary");
+    
     renderCategory(tertiaryEvents, tertiaryContainer, 1, "tertiary");
 
     scaleAllSections();
@@ -497,6 +500,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
