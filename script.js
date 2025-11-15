@@ -142,11 +142,11 @@ function parseICSTime(value, block = "", label = "") {
     if (tzid) {
       try {
         // Obtener offset estándar de esa zona (sin DST)
-        const offsetMinutes = getStandardOffsetMinutes(tzid);
-        const utcMs = baseMs - offsetMinutes * 60 * 1000;
+        const offsetHours = getStandardOffsetHours(tzid);
+        const utcMs = baseMs - offsetHours * 60 * 60 * 1000;
         const utcISO = new Date(utcMs).toISOString();
 
-        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} | Offset: ${offsetMinutes} min → UTC: ${utcISO}`);
+        console.log(`🕒 [${label}] ${value} | TZID: ${tzid} | Offset: ${offsetHours} h → UTC: ${utcISO}`);
         return utcISO;
       } catch (e) {
         console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
@@ -164,7 +164,7 @@ function parseICSTime(value, block = "", label = "") {
 // ==============================================
 // 🧮 Obtiene offset estándar (sin DST)
 // ==============================================
-function getStandardOffsetMinutes(tzid) {
+function getStandardOffsetHours(tzid) {
   const refDate = new Date(Date.UTC(2025, 0, 1)); // enero, sin horario de verano
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: tzid,
@@ -175,8 +175,8 @@ function getStandardOffsetMinutes(tzid) {
   const parts = dtf.formatToParts(refDate);
   const vals = Object.fromEntries(parts.map(p => [p.type, p.value]));
   const local = Date.UTC(vals.year, vals.month - 1, vals.day, vals.hour, vals.minute, vals.second);
-  const diffMinutes = (local - refDate.getTime()) / 60000;
-  return diffMinutes;
+  const diffHours = (local - refDate.getTime()) / (60*60*1000);
+  return diffHours;
 }
 
 // ==============================================
@@ -468,6 +468,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
