@@ -280,7 +280,7 @@ const WINDOWS_TZ_MAP = {
     "UTC+06": "Etc/GMT-6",
     "UTC+05": "Etc/GMT-5",
     "UTC+04": "Etc/GMT-4",
-    "UTC+03": "Etc/GMT-3",
+    "UTC+3": "Etc/GMT-3",
     "UTC+02": "Etc/GMT-2",
     "UTC+01": "Etc/GMT-1",
     "UTC-01": "Etc/GMT+1",
@@ -497,6 +497,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
