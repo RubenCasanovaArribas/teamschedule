@@ -274,24 +274,24 @@ const WINDOWS_TZ_MAP = {
     "UTC+12": "Etc/GMT-12",
     "UTC+11": "Etc/GMT-11",
     "UTC+10": "Etc/GMT-10",
-    "UTC+09": "Etc/GMT-9",
-    "UTC+08": "Etc/GMT-8",
-    "UTC+07": "Etc/GMT-7",
-    "UTC+06": "Etc/GMT-6",
-    "UTC+05": "Etc/GMT-5",
-    "UTC+04": "Etc/GMT-4",
+    "UTC+9": "Etc/GMT-9",
+    "UTC+8": "Etc/GMT-8",
+    "UTC+7": "Etc/GMT-7",
+    "UTC+6": "Etc/GMT-6",
+    "UTC+5": "Etc/GMT-5",
+    "UTC+4": "Etc/GMT-4",
     "UTC+3": "Etc/GMT-3",
-    "UTC+02": "Etc/GMT-2",
-    "UTC+01": "Etc/GMT-1",
-    "UTC-01": "Etc/GMT+1",
-    "UTC-02": "Etc/GMT+2",
-    "UTC-03": "Etc/GMT+3",
-    "UTC-04": "Etc/GMT+4",
-    "UTC-05": "Etc/GMT+5",
-    "UTC-06": "Etc/GMT+6",
-    "UTC-07": "Etc/GMT+7",
-    "UTC-08": "Etc/GMT+8",
-    "UTC-09": "Etc/GMT+9",
+    "UTC+2": "Etc/GMT-2",
+    "UTC+1": "Etc/GMT-1",
+    "UTC-1": "Etc/GMT+1",
+    "UTC-2": "Etc/GMT+2",
+    "UTC-3": "Etc/GMT+3",
+    "UTC-4": "Etc/GMT+4",
+    "UTC-5": "Etc/GMT+5",
+    "UTC-6": "Etc/GMT+6",
+    "UTC-7": "Etc/GMT+7",
+    "UTC-8": "Etc/GMT+8",
+    "UTC-9": "Etc/GMT+9",
     "UTC-10": "Etc/GMT+10",
     "UTC-11": "Etc/GMT+11"
 };
@@ -497,6 +497,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
