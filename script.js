@@ -24,10 +24,16 @@ async function loadEvents() {
     const fetchICS = async (urls, category) => {
       const all = await Promise.all(
         urls.map(async (u) => {
+          console.log("📥 Fetching ICS:", u);
           const proxied = "https://corsproxy.io/?" + encodeURIComponent(u);
           const resp = await fetch(proxied);
           const text = await resp.text();
-          return parseICS(text).map((e) => ({ ...e, category }));
+
+          const parsed = parseICS(text); //nuevo
+          console.log(`✔️ Parsed ${parsed.length} events from`, u); //nuevo
+
+          return parsed.map((e) => ({ ...e, category })); //nuevo
+          //return parseICS(text).map((e) => ({ ...e, category }));  //original
         })
       );
       return all.flat();
@@ -468,6 +474,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
