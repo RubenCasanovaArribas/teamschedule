@@ -315,7 +315,7 @@ function createEventCard(ev) {
 
   const parts = [];
   parts.push(`${formatTime(ev.start)} — ${formatTime(ev.end)}`);
-  if (SHOW_DESCRIPTION && ev.description) parts.push(`[ ${ev.description}]`);
+  if (SHOW_DESCRIPTION && ev.description && ev.description.trim() !== "") parts.push(`[ ${ev.description}]`);
   if (SHOW_LOCATION && ev.location) parts.push(`📍 ${ev.location}`);
 
   const infoLine = parts.join(" • ");
@@ -500,6 +500,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
