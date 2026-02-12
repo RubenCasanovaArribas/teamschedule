@@ -25,7 +25,7 @@ async function loadEvents() {
       const all = await Promise.all(
         urls.map(async (u) => {
           console.log("📥 Fetching ICS:", u);
-          const proxied = "https://corsproxy.io/?" + encodeURIComponent(u);
+          const proxied = "calendar-proxy.rubencasanovaarribas.workers.dev/?" + encodeURIComponent(u);
           const resp = await fetch(proxied);
           const text = await resp.text();
 
@@ -500,6 +500,7 @@ setInterval(() => {
   console.log("🔄 Auto-refreshing events...");
   loadEvents();
 }, 1 * 60 * 1000);
+
 
 
 
