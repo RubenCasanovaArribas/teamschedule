@@ -242,7 +242,7 @@
       const fetchICS = async (urls, category) => {
         const all = await Promise.all(
           urls.map(async (u) => {
-            const proxied = "calendar-proxy.rubencasanovaarribas.workers.dev/?url=" + u;
+            const proxied = "https://calendar-proxy.rubencasanovaarribas.workers.dev/?url=" + encodeURIComponent(u);
             const resp = await fetch(proxied);
             const text = await resp.text();
             return parseICS(text).map(e => ({ ...e, category }));
@@ -633,6 +633,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
