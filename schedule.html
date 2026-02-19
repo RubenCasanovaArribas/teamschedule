@@ -196,77 +196,135 @@
     }
   }
 
-/* ==========================
-   🖨️ PRINT VERSION
-========================== */
+/* =====================================================
+   🖨️ COMPACT PRINT LAYOUT – RACE WEEKEND VERSION
+===================================================== */
 @media print {
 
-  /* Reset page */
-  body {
-    background: #fff;
-    color: #000;
+  /* Page setup */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
   }
 
-  /* Remove scroll container behavior */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11px;
+  }
+
+  /* Remove scroll behavior */
   #all-events {
     height: auto !important;
     overflow: visible !important;
-    padding: 0;
-    gap: 16px;
+    padding: 0 !important;
+    gap: 8px !important;
   }
 
-  /* Hide header clock click behavior but keep title */
+  /* Header (compact + black) */
   header {
-    position: static;
-    box-shadow: none;
+    position: static !important;
+    box-shadow: none !important;
     border-bottom: 2px solid #000;
-    margin-bottom: 20px;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  .header-title {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #000 !important;
+  }
+
+  .logo-img {
+    height: 40px !important;
+    filter: none !important; /* ensures full black logo if SVG */
   }
 
   #current-datetime {
-    display: none; /* hide live clock */
+    display: none !important; /* remove live clock */
   }
 
   /* Day headers */
   .day-separator {
-    position: static; /* disable sticky */
-    background: #000;
-    color: #fff;
-    box-shadow: none;
-    margin-top: 20px;
+    position: static !important;
+    background: #000 !important;
+    color: #fff !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    margin-top: 10px !important;
+    margin-bottom: 4px !important;
+    box-shadow: none !important;
   }
 
   /* Event cards */
   .event-card {
-    break-inside: avoid;
-    page-break-inside: avoid;
-    border: 1px solid #ccc;
-    box-shadow: none;
+    display: grid !important;
+    grid-template-columns: 85px 1fr !important;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #ccc;
+    box-shadow: none !important;
     transform: none !important;
-    width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .event-card:hover {
-    transform: none;
-    box-shadow: none;
+    transform: none !important;
+    box-shadow: none !important;
   }
 
-  /* Hide dynamic UI */
+  /* Remove colors */
+  .info-left .title,
+  .info-right .datetime,
+  .info-right .description,
+  .location {
+    color: #000 !important;
+  }
+
+  /* Smaller typography for compact layout */
+  .info-left .title {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+  }
+
+  .info-right .datetime {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+  }
+
+  .info-right .description {
+    font-size: 9px !important;
+  }
+
+  .location {
+    font-size: 9px !important;
+    font-style: normal !important;
+  }
+
+  /* Remove category colors but keep label */
+  .badge {
+    background: none !important;
+    color: #000 !important;
+    border: 1px solid #000;
+    font-size: 8px !important;
+    padding: 1px 4px !important;
+  }
+
+  /* Remove dynamic UI */
   .progress-bar {
     display: none !important;
   }
 
-  /* Simplify badges for print */
-  .badge {
-    border: 1px solid #000;
-    background: #fff !important;
-    color: #000 !important;
+  /* Remove scrollbars */
+  #all-events::-webkit-scrollbar {
+    display: none !important;
   }
 
-  /* Remove scrollbar visuals */
-  #all-events::-webkit-scrollbar {
-    display: none;
-  }
 }
 
 
@@ -731,6 +789,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
