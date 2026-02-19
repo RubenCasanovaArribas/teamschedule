@@ -195,6 +195,81 @@
       text-align: left;
     }
   }
+
+/* ==========================
+   🖨️ PRINT VERSION
+========================== */
+@media print {
+
+  /* Reset page */
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* Remove scroll container behavior */
+  #all-events {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0;
+    gap: 16px;
+  }
+
+  /* Hide header clock click behavior but keep title */
+  header {
+    position: static;
+    box-shadow: none;
+    border-bottom: 2px solid #000;
+    margin-bottom: 20px;
+  }
+
+  #current-datetime {
+    display: none; /* hide live clock */
+  }
+
+  /* Day headers */
+  .day-separator {
+    position: static; /* disable sticky */
+    background: #000;
+    color: #fff;
+    box-shadow: none;
+    margin-top: 20px;
+  }
+
+  /* Event cards */
+  .event-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #ccc;
+    box-shadow: none;
+    transform: none !important;
+    width: 100%;
+  }
+
+  .event-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Hide dynamic UI */
+  .progress-bar {
+    display: none !important;
+  }
+
+  /* Simplify badges for print */
+  .badge {
+    border: 1px solid #000;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Remove scrollbar visuals */
+  #all-events::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+
 </style>
 
 
@@ -656,6 +731,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
