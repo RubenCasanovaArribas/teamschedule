@@ -196,15 +196,15 @@
     }
   }
 
+  
 /* =====================================================
-   🖨️ COMPACT PRINT LAYOUT – RACE WEEKEND VERSION
+   🖨️ GARAGE WALL – COMPACT TABLE PRINT LAYOUT
 ===================================================== */
 @media print {
 
-  /* Page setup */
   @page {
     size: A4 portrait;
-    margin: 15mm;
+    margin: 12mm;
   }
 
   body {
@@ -218,16 +218,16 @@
     height: auto !important;
     overflow: visible !important;
     padding: 0 !important;
-    gap: 8px !important;
+    gap: 0 !important;
   }
 
-  /* Header (compact + black) */
+  /* Header (keep logo + title only) */
   header {
     position: static !important;
     box-shadow: none !important;
     border-bottom: 2px solid #000;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
   }
 
   .header-title {
@@ -238,96 +238,89 @@
 
   .logo-img {
     height: 40px !important;
-    filter: none !important; /* ensures full black logo if SVG */
   }
 
   #current-datetime {
-    display: none !important; /* remove live clock */
+    display: none !important;
   }
 
-  /* Day headers */
+  /* Hide badges and dynamic UI */
+  .badge,
+  .progress-bar {
+    display: none !important;
+  }
+
+  /* ---- Day Header Row ---- */
   .day-separator {
     position: static !important;
     background: #000 !important;
     color: #fff !important;
-    padding: 4px 8px !important;
+    font-weight: 700 !important;
+    padding: 6px 8px !important;
+    margin: 12px 0 0 0 !important;
     font-size: 12px !important;
-    margin-top: 10px !important;
-    margin-bottom: 4px !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
   }
 
-  /* Event cards */
+  /* ---- Convert Cards into Table Rows ---- */
   .event-card {
     display: grid !important;
-    grid-template-columns: 85px 1fr !important;
+    grid-template-columns: 1.2fr 0.8fr 1.5fr !important;
     padding: 4px 8px !important;
     margin: 0 !important;
     border-radius: 0 !important;
-    background: #ffffff !important;
     border-bottom: 1px solid #ccc;
+    background: #ffffff !important;
     box-shadow: none !important;
     transform: none !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  .event-card:hover {
-    transform: none !important;
-    box-shadow: none !important;
+  /* Light background for MAIN category only */
+  .event-card.main {
+    background: #f2f2f2 !important;
   }
 
-  /* Remove colors */
-  .info-left .title,
-  .info-right .datetime,
-  .info-right .description,
-  .location {
-    color: #000 !important;
+  /* Column 1 – Title */
+  .info-left {
+    display: block !important;
   }
 
-  /* Smaller typography for compact layout */
   .info-left .title {
     font-size: 11px !important;
     font-weight: 700 !important;
+    color: #000 !important;
     line-height: 1.2 !important;
   }
 
+  /* Column 2 – Time */
   .info-right .datetime {
     font-size: 10px !important;
     font-weight: 600 !important;
+    color: #000 !important;
   }
 
-  .info-right .description {
+  /* Column 3 – Extra info */
+  .info-right .description,
+  .location {
     font-size: 9px !important;
+    color: #000 !important;
   }
 
   .location {
-    font-size: 9px !important;
     font-style: normal !important;
   }
 
-  /* Remove category colors but keep label */
-  .badge {
-    background: none !important;
-    color: #000 !important;
-    border: 1px solid #000;
-    font-size: 8px !important;
-    padding: 1px 4px !important;
-  }
-
-  /* Remove dynamic UI */
-  .progress-bar {
-    display: none !important;
-  }
-
-  /* Remove scrollbars */
-  #all-events::-webkit-scrollbar {
-    display: none !important;
+  /* Re-align columns */
+  .info-right {
+    display: contents !important;
   }
 
 }
 
-
+  
 </style>
 
 
@@ -789,6 +782,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
