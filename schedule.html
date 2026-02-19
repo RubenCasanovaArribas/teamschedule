@@ -242,6 +242,7 @@
 
   .logo-img {
     height: 28px !important;
+    filter: brightness(0) contrast(100%) !important;
   }
 
   #current-datetime {
@@ -257,15 +258,20 @@
   /* =========================
      DAY ROW
   ========================= */
-  .day-separator {
-    position: static !important;
-    background: #000 !important;
+  #all-events .day-separator {
+    display: block !important;
+    width: 100% !important;
+    background-color: #000 !important;
     color: #fff !important;
     font-weight: 700 !important;
-    font-size: 9px !important;
-    padding: 2px 6px !important;
-    margin: 6px 0 0 0 !important;
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+    margin: 6px 0 2px 0 !important;
     border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* =========================
@@ -799,6 +805,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
