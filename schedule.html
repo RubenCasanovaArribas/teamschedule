@@ -199,6 +199,7 @@
   
 /* =====================================================
    🖨️ GARAGE WALL – ULTRA COMPACT 3 COLUMN VERSION
+   TIME | TITLE | INFO
 ===================================================== */
 @media print {
 
@@ -226,7 +227,9 @@
     gap: 0 !important;
   }
 
-  /* HEADER */
+  /* =========================
+     HEADER
+  ========================= */
   header {
     position: static !important;
     border-bottom: 1px solid #000;
@@ -249,7 +252,6 @@
     display: none !important;
   }
 
-  /* REMOVE UI ELEMENTS */
   .badge,
   .progress-bar {
     display: none !important;
@@ -275,7 +277,7 @@
   }
 
   /* =========================
-     EVENT ROW (3 COLUMNS)
+     EVENT ROW
   ========================= */
   .event-card {
     display: grid !important;
@@ -289,48 +291,58 @@
     border: none !important;
     box-shadow: none !important;
     transform: none !important;
-    border-bottom: 1px solid #d0d0d0; /* horizontal separator */
+    border-bottom: 1px solid #d0d0d0;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* MAIN CATEGORY – LIGHT COLOR */
+  /* MAIN CATEGORY – LIGHT YELLOW */
   .event-card.main {
-    background: #ffffc5 !important;
+    background-color: #ffffc5 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Remove bold from non-main rows */
+  /* Remove bold from non-main */
   .event-card:not(.main) .title,
   .event-card:not(.main) .datetime {
     font-weight: 400 !important;
   }
 
-  /* MAIN rows bold */
+  /* Bold only main rows */
   .event-card.main .title,
   .event-card.main .datetime {
     font-weight: 700 !important;
   }
 
-  /* Flatten internal wrappers */
-  .info-left,
-  .info-right {
-    display: contents !important;
+  /* =========================
+     LEFT WRAPPER (Time + Title)
+  ========================= */
+  .event-card > .info-left {
+    display: grid !important;
+    grid-template-columns: 0.9fr 1.5fr !important;
+    grid-column: 1 / 3 !important;
+    align-items: center !important;
   }
 
-  /* Column formatting */
-  /* COLUMN PLACEMENT — TIME | TITLE | INFO */
+  /* RIGHT WRAPPER (Info) */
+  .event-card > .info-right {
+    grid-column: 3 !important;
+  }
+
+  /* =========================
+     COLUMN FORMATTING
+  ========================= */
 
   .datetime {
     grid-column: 1 !important;
     font-size: 9px !important;
     line-height: 13px !important;
     margin: 0 !important;
+    white-space: nowrap !important;
     color: #000 !important;
-    text-align: left !important;
   }
-  
+
   .title {
     grid-column: 2 !important;
     font-size: 9px !important;
@@ -338,15 +350,15 @@
     margin: 0 !important;
     color: #000 !important;
   }
-  
+
   .description,
   .location {
-    grid-column: 3 !important;
     font-size: 8px !important;
     line-height: 13px !important;
     margin: 0 !important;
     color: #000 !important;
   }
+
 }
 
   
@@ -811,6 +823,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
