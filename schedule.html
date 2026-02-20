@@ -279,7 +279,7 @@
   ========================= */
   .event-card {
     display: grid !important;
-    grid-template-columns: 1.5fr 0.9fr 1.8fr !important;
+    grid-template-columns: 0.9fr 1.5fr 1.8fr !important;
     align-items: center !important;
     height: 13px !important;
     min-height: 13px !important;
@@ -294,7 +294,7 @@
     break-inside: avoid;
   }
 
-  /* MAIN CATEGORY – LIGHT RED */
+  /* MAIN CATEGORY – LIGHT COLOR */
   .event-card.main {
     background: #ffffc5 !important;
     -webkit-print-color-adjust: exact !important;
@@ -321,6 +321,7 @@
 
   /* Column formatting */
   .title {
+    grid-column: 2 !important;
     font-size: 9px !important;
     line-height: 13px !important;
     margin: 0 !important;
@@ -328,15 +329,17 @@
   }
 
   .datetime {
+    grid-column: 1 !important;
     font-size: 9px !important;
     line-height: 13px !important;
     margin: 0 !important;
     color: #000 !important;
-    text-align: center !important;
+    text-align: left !important;
   }
 
   .description,
   .location {
+    grid-column: 3 !important;
     font-size: 8px !important;
     line-height: 13px !important;
     margin: 0 !important;
@@ -807,6 +810,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
