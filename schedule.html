@@ -280,6 +280,7 @@
   .event-card {
     display: grid !important;
     grid-template-columns: 0.9fr 1.5fr 1.8fr !important;
+    grid-auto-flow: column !important;
     align-items: center !important;
     height: 13px !important;
     min-height: 13px !important;
@@ -321,7 +322,7 @@
 
   /* Column formatting */
   .datetime {
-    grid-column: 1 !important;
+    order: 1 !important;
     font-size: 9px !important;
     line-height: 13px !important;
     margin: 0 !important;
@@ -330,7 +331,7 @@
   }
 
     .title {
-    grid-column: 2 !important;
+    order: 2 !important;
     font-size: 9px !important;
     line-height: 13px !important;
     margin: 0 !important;
@@ -339,7 +340,7 @@
 
   .description,
   .location {
-    grid-column: 3 !important;
+    order: 3 !important;
     font-size: 8px !important;
     line-height: 13px !important;
     margin: 0 !important;
@@ -810,6 +811,7 @@ function convertWindowsToIANA(tzid) {
 
 </body>
 </html>
+
 
 
 
