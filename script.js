@@ -146,19 +146,19 @@ function parseICSTime(value, block = "", label = "") {
     const second = +value.slice(13,15);
 
     // Crear una fecha base (en milisegundos)
+    // Build the base UTC date first (treating input as if it were UTC)
     let baseMs = Date.UTC(year, month, day, hour, minute, second);
-
+    
     if (tzid) {
       try {
-        // Obtener offset estándar de esa zona (sin DST)
-        const offsetHours = getStandardOffsetHours(tzid);
+        // Pass the event's own date so DST offset is correct for that moment
+        const offsetHours = getStandardOffsetHours(tzid, new Date(baseMs));
         const utcMs = baseMs - offsetHours * 60 * 60 * 1000;
         const utcISO = new Date(utcMs).toISOString();
-
         console.log(`🕒 [${label}] ${value} | TZID: ${tzid} | Offset: ${offsetHours} h → UTC: ${utcISO}`);
         return utcISO;
       } catch (e) {
-        console.warn(`⚠️ TZID '${tzid}' no reconocido — usando hora local (${label}).`);
+        console.warn(`⚠️ TZID '${tzid}' not recognised — using local time (${label}).`);
         return new Date(baseMs).toISOString();
       }
     }
@@ -173,18 +173,19 @@ function parseICSTime(value, block = "", label = "") {
 // ==============================================
 // 🧮 Obtiene offset estándar (sin DST)
 // ==============================================
-function getStandardOffsetHours(tzid) {
-  const refDate = new Date(Date.UTC(2025, 0, 1)); // enero, sin horario de verano
+function getStandardOffsetHours(tzid, refDate) {
+  // Use the actual event date so DST is correctly applied
+  const ref = refDate || new Date();
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: tzid,
     hour12: false,
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit"
   });
-  const parts = dtf.formatToParts(refDate);
+  const parts = dtf.formatToParts(ref);
   const vals = Object.fromEntries(parts.map(p => [p.type, p.value]));
-  const local = Date.UTC(vals.year, vals.month - 1, vals.day, vals.hour, vals.minute, vals.second);
-  const diffHours = (local - refDate.getTime()) / (60*60*1000);
+  const local = Date.UTC(+vals.year, +vals.month - 1, +vals.day, +vals.hour, +vals.minute, +vals.second);
+  const diffHours = (local - ref.getTime()) / (60 * 60 * 1000);
   return diffHours;
 }
 
