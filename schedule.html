@@ -488,7 +488,7 @@ function parseICSTime(value, block = "", label = "") {
 
     if (tzid) {
       try {
-        const offsetMinutes = getStandardOffsetMinutes(tzid);
+        const offsetMinutes = getStandardOffsetMinutes(tzid, new Date(baseMs));  // ← pass event date
         const utcMs = baseMs - offsetMinutes * 60 * 1000;
         const utcISO = new Date(utcMs).toISOString();
         console.log(`🕒 [${label}] ${value} | TZID: ${tzid} | Offset: ${offsetMinutes} min → UTC: ${utcISO}`);
@@ -506,20 +506,20 @@ function parseICSTime(value, block = "", label = "") {
 }
 
 // ==============================================
-// 🧮 Obtiene offset estándar (sin DST)
+// 🧮 Obtiene offset real (con DST según fecha del evento)
 // ==============================================
-function getStandardOffsetMinutes(tzid) {
-  const refDate = new Date(Date.UTC(2025, 0, 1)); // enero, sin horario de verano
+function getStandardOffsetMinutes(tzid, refDate) {
+  const ref = refDate || new Date();
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: tzid,
     hour12: false,
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit"
   });
-  const parts = dtf.formatToParts(refDate);
+  const parts = dtf.formatToParts(ref);
   const vals = Object.fromEntries(parts.map(p => [p.type, p.value]));
-  const local = Date.UTC(vals.year, vals.month - 1, vals.day, vals.hour, vals.minute, vals.second);
-  const diffMinutes = (local - refDate.getTime()) / 60000;
+  const local = Date.UTC(+vals.year, +vals.month - 1, +vals.day, +vals.hour, +vals.minute, +vals.second);
+  const diffMinutes = (local - ref.getTime()) / 60000;
   return diffMinutes;
 }
 
